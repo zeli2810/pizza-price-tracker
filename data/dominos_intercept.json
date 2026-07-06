@@ -1,0 +1,136 @@
+[
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/connect",
+    "body": {
+      "lang": "he",
+      "hardware": "PC",
+      "runtime": "browser",
+      "appVersion": "1.16.3",
+      "browserType": "Chrome",
+      "os": "Windows",
+      "deviceModel": "",
+      "referrer": "",
+      "url": "https://www.dominos.co.il/menu",
+      "requestNum": 1
+    }
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/setLang",
+    "body": {
+      "lang": "he",
+      "requestNum": 2
+    }
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/connect",
+    "status": "success",
+    "keys": [
+      "accessToken",
+      "refreshToken"
+    ]
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/getCustomerDetails",
+    "body": {
+      "gpsstatus": "off",
+      "url": "https://www.dominos.co.il/menu",
+      "requestNum": 3
+    }
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/setLang",
+    "status": "success",
+    "keys": []
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/getStoreList",
+    "body": {
+      "requestNum": 4
+    }
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/getGlobalParamsForFe",
+    "body": {
+      "requestNum": 4
+    }
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/getCustomerDetails",
+    "status": "success",
+    "keys": [
+      "type",
+      "firstName",
+      "middleName",
+      "lastName",
+      "preferences",
+      "dateOfBirth",
+      "gender",
+      "email",
+      "allowMarketing",
+      "approvedTerms"
+    ]
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/getPopupDetails",
+    "body": {
+      "stage": "getCustomerDetails",
+      "requestNum": 5
+    }
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/getGlobalParamsForFe",
+    "status": "success",
+    "keys": [
+      "DefaultMenus",
+      "birthdayOption",
+      "contactLargeOrderMenuType",
+      "contactUsOptions",
+      "cookieUsageDisclaimerSettings",
+      "customerDetailsValidations",
+      "displayDecimalPoints",
+      "emailsForMarketing",
+      "pointsOfInteresetOption",
+      "savedKitNameValidation"
+    ]
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/getStoreList",
+    "status": "success",
+    "keys": []
+  },
+  {
+    "dir": "REQ",
+    "url": "https://api.dominos.co.il/getOrderingStatus",
+    "body": {
+      "requestNum": 7
+    }
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/getPopupDetails",
+    "status": "success",
+    "keys": [
+      "popups",
+      "products"
+    ]
+  },
+  {
+    "dir": "RES",
+    "url": "https://api.dominos.co.il/getOrderingStatus",
+    "status": "success",
+    "keys": [
+      "orderStatus"
+    ]
+  }
+]

@@ -1,0 +1,42 @@
+[
+  {
+    "date": "2026-06-24",
+    "timestamp": "2026-06-24 09:35:59",
+    "sources": {
+      "dominos": {
+        "name": "דומינוס פיצה",
+        "family": null,
+        "meal_single": null,
+        "meal_double": null,
+        "error": null,
+        "note": "כל הסניפים סגורים כעת (64 סניפים). מחירים ממועד הסריקה הקודם.",
+        "raw_samples": []
+      },
+      "pizzahut": {
+        "name": "פיצה האט",
+        "family": null,
+        "meal_single": null,
+        "meal_double": null,
+        "error": null,
+        "raw_samples": [
+          "שקופית 1 מתוך 2",
+          "ילד 1 שזולל פיצה",
+          "2 ילדים זוללי פיצה",
+          "3 ילדים זוללי פיצה",
+          "4 ילדים זוללי פיצה",
+          "5 ילדים ויותר",
+          "Hut 4HR",
+          "A2Z - נגישות ושיווק דיגיטלי"
+        ]
+      },
+      "papajohns": {
+        "name": "פאפא ג'ונס",
+        "family": null,
+        "meal_single": null,
+        "meal_double": null,
+        "error": "האתר חסום על ידי Akamai CDN",
+        "raw_samples": []
+      }
+    }
+  }
+]

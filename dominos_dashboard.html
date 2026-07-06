@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב מחירי דומינוס</title>
+<style>
+  :root {
+    --blue:   #0078AE;
+    --blue2:  #005f8e;
+    --bg:     #0d1117;
+    --card:   #161b22;
+    --card2:  #1c2128;
+    --border: #30363d;
+    --text:   #e6edf3;
+    --muted:  #8b949e;
+    --green:  #3fb950;
+    --red:    #f85149;
+    --yellow: #d29922;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Arial, sans-serif;
+    min-height: 100vh;
+    padding: 32px 20px 48px;
+  }
+
+  /* ── Header ── */
+  header {
+    text-align: center;
+    margin-bottom: 40px;
+  }
+  .logo-ring {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 64px; height: 64px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--blue), var(--blue2));
+    font-size: 2rem;
+    margin-bottom: 14px;
+    box-shadow: 0 0 32px rgba(0,120,174,.35);
+  }
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -.5px;
+    margin-bottom: 6px;
+  }
+  h1 span { color: var(--blue); }
+  .subtitle {
+    color: var(--muted);
+    font-size: .9rem;
+  }
+  .last-update {
+    display: inline-block;
+    margin-top: 12px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 5px 16px;
+    font-size: .8rem;
+    color: var(--muted);
+  }
+  .last-update span { color: var(--text); }
+
+  /* ── Section title ── */
+  .section-label {
+    max-width: 900px;
+    margin: 0 auto 12px;
+    font-size: .75rem;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    padding-right: 2px;
+  }
+
+  /* ── Today price cards ── */
+  .price-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 14px;
+    max-width: 900px;
+    margin: 0 auto 40px;
+  }
+
+  .price-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 22px 20px 18px;
+    position: relative;
+    overflow: hidden;
+    transition: transform .15s, box-shadow .15s;
+  }
+  .price-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  }
+  .price-card::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--blue);
+    border-radius: 14px 14px 0 0;
+  }
+
+  .card-icon {
+    font-size: 1.6rem;
+    margin-bottom: 10px;
+    display: block;
+  }
+  .card-label {
+    font-size: .82rem;
+    color: var(--muted);
+    margin-bottom: 10px;
+    font-weight: 500;
+  }
+  .card-price {
+    font-size: 2.4rem;
+    font-weight: 800;
+    color: var(--blue);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .card-price .currency {
+    font-size: 1.1rem;
+    vertical-align: super;
+    margin-left: 2px;
+    opacity: .7;
+  }
+  .card-price.none {
+    font-size: 1.4rem;
+    color: var(--muted);
+  }
+  .card-change {
+    margin-top: 10px;
+    font-size: .78rem;
+    font-weight: 600;
+  }
+  .up   { color: var(--red); }
+  .down { color: var(--green); }
+  .same { color: var(--muted); }
+
+  /* ── Chart ── */
+  .chart-box {
+    max-width: 900px;
+    margin: 0 auto 40px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 24px 20px 14px;
+  }
+  .chart-header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .chart-title {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--muted);
+    flex: 1;
+  }
+  .legend {
+    display: flex;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: .75rem;
+    color: var(--muted);
+  }
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+  canvas { width: 100% !important; display: block; }
+
+  /* ── History table ── */
+  .table-box {
+    max-width: 900px;
+    margin: 0 auto;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: .88rem;
+    min-width: 500px;
+  }
+  thead { background: var(--card2); }
+  th {
+    padding: 13px 16px;
+    text-align: center;
+    font-size: .73rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .7px;
+    color: var(--muted);
+    white-space: nowrap;
+  }
+  th:first-child { text-align: right; }
+
+  td {
+    padding: 12px 16px;
+    text-align: center;
+    border-top: 1px solid var(--border);
+    font-variant-numeric: tabular-nums;
+  }
+  td:first-child {
+    text-align: right;
+    color: var(--muted);
+    font-size: .82rem;
+    white-space: nowrap;
+  }
+  tr:hover td { background: rgba(255,255,255,.025); }
+
+  .price-cell { color: var(--text); font-weight: 500; }
+  .no-price   { color: var(--muted); }
+  .chip-up    { color: var(--red);   font-size: .72rem; }
+  .chip-dn    { color: var(--green); font-size: .72rem; }
+
+  .error-banner {
+    max-width: 900px;
+    margin: 0 auto 16px;
+    background: rgba(248,81,73,.1);
+    border: 1px solid rgba(248,81,73,.3);
+    border-radius: 10px;
+    padding: 10px 16px;
+    font-size: .85rem;
+    color: var(--red);
+  }
+
+  .empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--muted);
+  }
+  .empty-state big {
+    display: block;
+    font-size: 3rem;
+    margin-bottom: 12px;
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 48px;
+    color: var(--muted);
+    font-size: .75rem;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-ring">🍕</div>
+  <h1>מעקב מחירי <span>דומינוס</span></h1>
+  <p class="subtitle">עדכון יומי אוטומטי בשעה 14:00 · dominos.co.il</p>
+  <div class="last-update" id="lastUpdate">טוען...</div>
+</header>
+
+<div id="errorBanner" style="display:none"></div>
+
+<div class="section-label">מחירים עדכניים</div>
+<div class="price-cards" id="priceCards">
+  <div class="empty-state" style="grid-column:1/-1">טוען...</div>
+</div>
+
+<div class="section-label">מגמת מחירים</div>
+<div class="chart-box">
+  <div class="chart-header">
+    <div class="chart-title">מחיר לאורך זמן (₪)</div>
+    <div class="legend" id="chartLegend"></div>
+  </div>
+  <canvas id="chart" height="200"></canvas>
+</div>
+
+<div class="section-label">טבלת היסטוריה</div>
+<div class="table-box">
+  <table>
+    <thead>
+      <tr>
+        <th>תאריך</th>
+        <th>פיצה משפחתית</th>
+        <th>ארוחת פיצה אחת</th>
+        <th>ארוחת שתי פיצות</th>
+      </tr>
+    </thead>
+    <tbody id="histBody">
+      <tr><td colspan="4"><div class="empty-state">טוען...</div></td></tr>
+    </tbody>
+  </table>
+</div>
+
+<footer>
+  מחירים נאספים אוטומטית מ-dominos.co.il · לצורכי השוואה בלבד
+</footer>
+
+<script>
+const PRICE_DEFS = [
+  { key: 'family',      label: 'פיצה משפחתית',    icon: '🍕', col: '#0078AE' },
+  { key: 'meal_single', label: 'ארוחת פיצה אחת',  icon: '🥤', col: '#00a3e0' },
+  { key: 'meal_double', label: 'ארוחת שתי פיצות', icon: '🍕🍕', col: '#38bdf8' },
+];
+
+// ── Tiny canvas chart ─────────────────────────────────────────────────────────
+function drawChart(canvas, labels, datasets) {
+  const dpr = window.devicePixelRatio || 1;
+  const W   = canvas.parentElement.offsetWidth - 40;
+  const H   = 200;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  canvas.style.width  = W + 'px';
+  canvas.style.height = H + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const PAD = { top: 16, right: 16, bottom: 36, left: 54 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top  - PAD.bottom;
+
+  const allVals = datasets.flatMap(d => d.data).filter(v => v != null);
+  if (!allVals.length) {
+    ctx.fillStyle = 'rgba(255,255,255,.2)';
+    ctx.font = '13px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('אין נתונים להצגה', W / 2, H / 2);
+    return;
+  }
+
+  const rawMin = Math.min(...allVals);
+  const rawMax = Math.max(...allVals);
+  const pad    = (rawMax - rawMin) * 0.12 || 10;
+  const minV   = Math.floor(rawMin - pad);
+  const maxV   = Math.ceil(rawMax + pad);
+
+  const xS = i => PAD.left + (labels.length < 2 ? cW / 2 : (i / (labels.length - 1)) * cW);
+  const yS = v => PAD.top + cH - ((v - minV) / (maxV - minV || 1)) * cH;
+
+  // Gridlines
+  const ticks = 4;
+  for (let i = 0; i <= ticks; i++) {
+    const v = minV + (maxV - minV) * i / ticks;
+    const y = yS(v);
+    ctx.strokeStyle = 'rgba(255,255,255,.06)';
+    ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(PAD.left, y); ctx.lineTo(PAD.left + cW, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,.3)';
+    ctx.font = '10px Segoe UI';
+    ctx.textAlign = 'right';
+    ctx.fillText('₪' + Math.round(v), PAD.left - 4, y + 4);
+  }
+
+  // X labels
+  const step = Math.max(1, Math.ceil(labels.length / 8));
+  ctx.fillStyle = 'rgba(255,255,255,.3)';
+  ctx.font = '10px Segoe UI';
+  ctx.textAlign = 'center';
+  labels.forEach((l, i) => {
+    if (i % step === 0 || i === labels.length - 1) {
+      ctx.fillText(l.slice(5), xS(i), H - 6);
+    }
+  });
+
+  // Lines + dots
+  datasets.forEach(ds => {
+    const pts = ds.data.map((v, i) => (v != null ? { x: xS(i), y: yS(v) } : null));
+
+    ctx.beginPath();
+    ctx.strokeStyle = ds.color;
+    ctx.lineWidth = 2.5;
+    ctx.lineJoin = 'round';
+    let pen = false;
+    pts.forEach(p => {
+      if (!p) { pen = false; return; }
+      if (!pen) { ctx.moveTo(p.x, p.y); pen = true; }
+      else        ctx.lineTo(p.x, p.y);
+    });
+    ctx.stroke();
+
+    pts.forEach(p => {
+      if (!p) return;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, 4, 0, Math.PI * 2);
+      ctx.fillStyle = ds.color;
+      ctx.fill();
+      ctx.strokeStyle = '#0d1117';
+      ctx.lineWidth = 1.5;
+      ctx.stroke();
+    });
+  });
+}
+
+// ── Data loading ──────────────────────────────────────────────────────────────
+async function loadData() {
+  try {
+    const r = await fetch('data/dominos_prices.json?t=' + Date.now());
+    if (!r.ok) throw new Error('fetch failed');
+    return await r.json();
+  } catch {
+    return window.__PIZZA_DATA__ || [];
+  }
+}
+
+// ── Format helpers ────────────────────────────────────────────────────────────
+function fmtPrice(v) {
+  if (v == null) return null;
+  return '₪' + Number(v).toFixed(0);
+}
+
+function changeBadge(curr, prev) {
+  if (curr == null || prev == null) return '';
+  const d = curr - prev;
+  if (Math.abs(d) < 0.5) return '<span class="same">ללא שינוי</span>';
+  const sign = d > 0 ? '+' : '';
+  const cls  = d > 0 ? 'chip-up' : 'chip-dn';
+  return `<span class="${cls}">${sign}${d.toFixed(0)}₪</span>`;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const history = await loadData();
+  const last    = history[history.length - 1];
+  const prev    = history.length > 1 ? history[history.length - 2] : null;
+
+  // Header
+  const upEl = document.getElementById('lastUpdate');
+  upEl.innerHTML = last
+    ? `עדכון אחרון: <span>${last.timestamp || last.date}</span>`
+    : 'אין נתונים עדיין';
+
+  // Error banner
+  if (last?.error) {
+    const b = document.getElementById('errorBanner');
+    b.style.display = 'block';
+    b.textContent   = '⚠ ' + last.error;
+  }
+
+  // Price cards
+  const cardsEl = document.getElementById('priceCards');
+  if (!last) {
+    cardsEl.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+      <big>📋</big>אין נתונים עדיין.<br>הרץ את <code>dominos_scraper.py</code> כדי לאסוף מחירים.
+    </div>`;
+  } else {
+    cardsEl.innerHTML = PRICE_DEFS.map(def => {
+      const v  = last[def.key];
+      const pv = prev?.[def.key];
+      const priceHtml = v != null
+        ? `<div class="card-price"><span class="currency">₪</span>${Number(v).toFixed(0)}</div>`
+        : `<div class="card-price none">—</div>`;
+      const changeHtml = changeBadge(v, pv);
+      return `
+        <div class="price-card">
+          <span class="card-icon">${def.icon}</span>
+          <div class="card-label">${def.label}</div>
+          ${priceHtml}
+          <div class="card-change">${changeHtml || '&nbsp;'}</div>
+        </div>`;
+    }).join('');
+  }
+
+  // History table
+  const tbody = document.getElementById('histBody');
+  if (!history.length) {
+    tbody.innerHTML = '<tr><td colspan="4"><div class="empty-state">אין היסטוריה עדיין.</div></td></tr>';
+  } else {
+    tbody.innerHTML = [...history].reverse().map((entry, i) => {
+      const nextEntry = [...history].reverse()[i + 1]; // older entry for comparison
+      return `<tr>
+        <td>${entry.date}</td>
+        ${PRICE_DEFS.map(def => {
+          const v  = entry[def.key];
+          const pv = nextEntry?.[def.key];
+          const badge = v != null && pv != null && Math.abs(v - pv) >= 0.5
+            ? ` ${changeBadge(v, pv)}` : '';
+          return v != null
+            ? `<td class="price-cell">₪${Number(v).toFixed(0)}${badge}</td>`
+            : `<td class="no-price">—</td>`;
+        }).join('')}
+      </tr>`;
+    }).join('');
+  }
+
+  // Chart legend
+  const legendEl = document.getElementById('chartLegend');
+  legendEl.innerHTML = PRICE_DEFS.map(d =>
+    `<span class="legend-item"><span class="legend-dot" style="background:${d.col}"></span>${d.label}</span>`
+  ).join('');
+
+  // Chart
+  const canvas = document.getElementById('chart');
+  const labels = history.map(e => e.date);
+  const datasets = PRICE_DEFS.map(def => ({
+    color: def.col,
+    data:  history.map(e => e[def.key] ?? null),
+  }));
+  drawChart(canvas, labels, datasets);
+}
+
+window.addEventListener('load', init);
+window.addEventListener('resize', () => {
+  loadData().then(history => {
+    const canvas   = document.getElementById('chart');
+    const labels   = history.map(e => e.date);
+    const datasets = PRICE_DEFS.map(def => ({
+      color: def.col,
+      data:  history.map(e => e[def.key] ?? null),
+    }));
+    drawChart(canvas, labels, datasets);
+  });
+});
+</script>
+</body>
+</html>

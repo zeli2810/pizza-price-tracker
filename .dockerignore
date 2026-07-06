@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.claude/
+data/*.png
+data/*.html
+data/*.txt
+data/api_*
+data/dominos_intercept.json
+data/dom_menu.json
+data/nextjs_.json
+data/PH7_get_ranch.json
+debug*.py
+pj_*.py
+parse_pj*.py
+extract_pj_prices.py
+inspect_api.py
+*.bat

@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחירי פיצה – טבלת מעקב יומית</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface2: #1c2128;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --muted:    #8b949e;
+  --c-dom:    #0078AE;
+  --c-ph:     #E31837;
+  --c-pj:     #006341;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  padding: 28px 16px 56px;
+}
+header { text-align: center; margin-bottom: 24px; }
+h1 { font-size: 1.6rem; font-weight: 800; letter-spacing: -.4px; }
+.last-update {
+  display: inline-block; margin-top: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 16px;
+  font-size: .78rem; color: var(--muted);
+}
+.last-update b { color: var(--text); }
+
+.toolbar {
+  display: flex; justify-content: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+}
+button.action {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+  color: var(--text); font-size: .82rem; font-weight: 600; padding: 6px 18px;
+  cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 7px;
+}
+button.action:hover { background: var(--border); }
+button.action:disabled { opacity: .6; cursor: default; }
+
+#runLog {
+  display: none; margin: 10px auto 0; max-width: 640px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; font-size: .72rem; color: var(--muted); font-family: monospace;
+  max-height: 140px; overflow-y: auto; text-align: right; direction: ltr;
+}
+
+.table-wrap {
+  max-width: 1500px; margin: 24px auto 0;
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: auto;
+}
+table { width: 100%; border-collapse: collapse; font-size: .8rem; min-width: 1400px; }
+thead { background: var(--surface2); position: sticky; top: 0; }
+th {
+  padding: 10px 10px; text-align: center;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .3px; color: var(--muted); white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+th.date-col { text-align: right; }
+td {
+  padding: 9px 10px; text-align: center;
+  border-top: 1px solid var(--border);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+}
+td.date-col { text-align: right; color: var(--muted); font-size: .78rem; }
+tr:hover td { background: rgba(255,255,255,.022); }
+.col-dom { color: var(--c-dom); }
+.col-ph  { color: var(--c-ph); }
+.col-pj  { color: var(--c-pj); }
+.group-dom { background: rgba(0,120,174,.06); }
+.group-ph  { background: rgba(227,24,55,.06); }
+.group-pj  { background: rgba(0,99,65,.06); }
+
+.no-data { text-align: center; padding: 50px; color: var(--muted); }
+footer { text-align: center; margin-top: 24px; color: var(--muted); font-size: .72rem; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>🍕 מחירי פיצה – טבלת מעקב יומית</h1>
+  <div class="last-update" id="lastUpdate">טוען...</div>
+  <div class="toolbar">
+    <button class="action" id="runBtn" onclick="runScrape()">
+      <span id="runIcon">↻</span><span id="runLabel">רענן עכשיו</span>
+    </button>
+    <button class="action" onclick="exportExcel()">⬇ ייצוא לאקסל</button>
+  </div>
+  <div id="runLog"></div>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <thead id="histHead"></thead>
+    <tbody id="histBody"><tr><td class="no-data">טוען...</td></tr></tbody>
+  </table>
+</div>
+
+<footer>מחירים נאספים אוטומטית מדי יום ב-14:00 · כתובת ייחוס: תל אביב · לצורכי השוואה בלבד</footer>
+
+<script>
+const CHAINS = [
+  { key: 'dominos',   name: 'דומינוס',      cls: 'col-dom', group: 'group-dom' },
+  { key: 'pizzahut',  name: 'פיצה האט',     cls: 'col-ph',  group: 'group-ph'  },
+  { key: 'papajohns', name: "פאפא ג'ונס",   cls: 'col-pj',  group: 'group-pj'  },
+];
+
+const SUB_COLS = [
+  { key: 'family_pu',    label: 'משפחתית איסוף',        get: c => c.pu?.family },
+  { key: 'family_dlv',   label: 'משפחתית משלוח',        get: c => c.dlv?.family },
+  { key: 'single_pu',    label: 'ארוחת פיצה אחת איסוף', get: c => c.pu?.meal_single },
+  { key: 'single_dlv',   label: 'ארוחת פיצה אחת משלוח', get: c => c.dlv?.meal_single },
+  { key: 'double_pu',    label: 'ארוחת שתי פיצות איסוף', get: c => c.pu?.meal_double },
+  { key: 'double_dlv',   label: 'ארוחת שתי פיצות משלוח', get: c => c.dlv?.meal_double },
+  { key: 'branches',     label: 'סניפים פעילים',        get: c => c.branch_count },
+];
+
+let history = [];
+
+const fmt = v => v != null ? `₪${Number(v).toFixed(1)}` : '—';
+
+function renderTable() {
+  const thead = document.getElementById('histHead');
+  const tbody = document.getElementById('histBody');
+
+  const hRow1 = ['<th class="date-col" rowspan="2">תאריך</th>']
+    .concat(CHAINS.map(ch => `<th class="${ch.cls} ${ch.group}" colspan="${SUB_COLS.length}">${ch.name}</th>`))
+    .join('');
+  const hRow2 = CHAINS.flatMap(ch =>
+    SUB_COLS.map(sc => `<th class="${ch.cls} ${ch.group}">${sc.label}</th>`)
+  ).join('');
+
+  thead.innerHTML = `<tr>${hRow1}</tr><tr>${hRow2}</tr>`;
+
+  if (!history.length) {
+    tbody.innerHTML = `<tr><td class="no-data" colspan="${1 + CHAINS.length * SUB_COLS.length}">אין נתונים עדיין. לחצו "רענן עכשיו".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = [...history].reverse().map(entry => {
+    const cells = CHAINS.flatMap(ch => {
+      const c = entry.chains?.[ch.key] || {};
+      return SUB_COLS.map(sc => {
+        const v = sc.get(c);
+        const text = sc.key === 'branches' ? (v != null ? v : '—') : fmt(v);
+        return `<td class="${ch.group}">${text}</td>`;
+      });
+    });
+    return `<tr><td class="date-col">${entry.date}</td>${cells.join('')}</tr>`;
+  }).join('');
+}
+
+async function loadData() {
+  try {
+    const r = await fetch('/data?t=' + Date.now());
+    if (!r.ok) throw new Error();
+    return await r.json();
+  } catch {
+    return [];
+  }
+}
+
+async function init() {
+  history = await loadData();
+  const last = history[history.length - 1];
+  document.getElementById('lastUpdate').innerHTML =
+    last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b>` : 'אין נתונים עדיין';
+  renderTable();
+}
+
+function exportExcel() {
+  if (!history.length) { alert('אין נתונים לייצוא'); return; }
+
+  const header1 = ['תאריך'];
+  const header2 = [''];
+  CHAINS.forEach(ch => {
+    SUB_COLS.forEach(sc => {
+      header1.push(ch.name);
+      header2.push(sc.label);
+    });
+  });
+
+  const rows = [header1, header2];
+  [...history].reverse().forEach(entry => {
+    const row = [entry.date];
+    CHAINS.forEach(ch => {
+      const c = entry.chains?.[ch.key] || {};
+      SUB_COLS.forEach(sc => {
+        const v = sc.get(c);
+        row.push(v != null ? Number(v) : '');
+      });
+    });
+    rows.push(row);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = rows[0].map((_, i) => ({ wch: i === 0 ? 12 : 20 }));
+  ws['!freeze'] = { xSplit: 0, ySplit: 2 };
+  XLSX.utils.book_append_sheet(wb, ws, 'מחירי פיצה');
+  const today = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `pizza_prices_${today}.xlsx`);
+}
+
+async function runScrape() {
+  const btn = document.getElementById('runBtn');
+  const icon = document.getElementById('runIcon');
+  const label = document.getElementById('runLabel');
+  const log = document.getElementById('runLog');
+
+  btn.disabled = true;
+  icon.style.display = 'inline-block';
+  icon.style.animation = 'spin 1s linear infinite';
+  label.textContent = 'רץ...';
+  log.style.display = 'block';
+  log.textContent = '';
+
+  try {
+    const resp = await fetch('/run-scrape', { method: 'POST' });
+    const reader = resp.body.getReader();
+    const dec = new TextDecoder();
+    let done = false;
+    while (!done) {
+      const { value, done: d } = await reader.read();
+      done = d;
+      if (value) {
+        const chunk = dec.decode(value);
+        log.textContent += chunk;
+        log.scrollTop = log.scrollHeight;
+        if (chunk.includes('__DONE__')) break;
+      }
+    }
+    const ok = log.textContent.includes('__DONE__OK__');
+    icon.style.animation = '';
+    icon.textContent = ok ? '✓' : '✗';
+    label.textContent = ok ? 'עודכן!' : 'שגיאה';
+    if (ok) {
+      history = await loadData();
+      const last = history[history.length - 1];
+      document.getElementById('lastUpdate').innerHTML =
+        last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b>` : 'אין נתונים עדיין';
+      renderTable();
+    }
+  } catch (e) {
+    icon.style.animation = '';
+    icon.textContent = '✗';
+    label.textContent = 'שגיאת חיבור';
+    log.textContent += `\nError: ${e.message}`;
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => {
+      icon.textContent = '↻';
+      label.textContent = 'רענן עכשיו';
+    }, 3000);
+  }
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

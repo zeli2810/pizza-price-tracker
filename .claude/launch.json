@@ -1,0 +1,18 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "dominos-dashboard",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8766", "--directory", "C:\\_מישהו לחשוב איתו_\\הורדות\\ai\\pizza_tracker"],
+      "port": 8766
+    },
+    {
+      "name": "pizza-app",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8767",
+        "--app-dir", "C:\\_מישהו לחשוב איתו_\\הורדות\\ai\\pizza_tracker"],
+      "port": 8767
+    }
+  ]
+}

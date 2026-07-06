@@ -1,0 +1,227 @@
+{
+ "largeMenus": {
+  "mainMenu": {
+   "value": {
+    "enUS": "Regular",
+    "he": "רגיל"
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "mainMenuKosher": {
+   "value": {
+    "enUS": "Kosher",
+    "he": "כשר"
+   },
+   "assetVersion": 1,
+   "alt": ""
+  }
+ },
+ "trackerStatusMessages": {
+  "arrivingSoon": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "arriving Soon"
+    ],
+    "he": [
+     "עוד רגע אצלך"
+    ]
+   },
+   "assetVersion": 0,
+   "alt": ""
+  },
+  "baking": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "Just a bit more..",
+     "Just a moment...",
+     "We've got it!",
+     "Carefully into the oven",
+     "Not yet..."
+    ],
+    "he": [
+     "עוד רגע... ",
+     "יש לנו את זה!",
+     "עוד קצת...",
+     "ובזהירות לתנור ",
+     "עדיין לא..."
+    ]
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "delivered": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     ""
+    ],
+    "he": [
+     ""
+    ]
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "dispatched": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     ""
+    ],
+    "he": [
+     ""
+    ]
+   },
+   "assetVersion": 0,
+   "alt": ""
+  },
+  "enRoute": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     "",
+     ""
+    ],
+    "he": [
+     "#2 אין צורך לסדר את הסלון, ראינו כבר הכל. ",
+     "#4 יש משחק? אל תעש.י ספויילר לשליח.ה",
+     "#9 הגעת לסעיף 10? כל השאר בונוס! בתיאבון ",
+     "#6 לא קיבלת תבלינים? יש לך עוד במגירה ליד הסכו\"ם שם",
+     "#7 אם נשארה לך פיצה, הכי טוב לחמם במחבת (ככה אומרים)",
+     "#8 סיימת את הפיצה? יש להשאיר את הקרטון מחוץ לדלת ליום אחד לפחות כדי לפתוח עין לשכנים. ",
+     "9# הזמנתם פיצה אחרי שהילדים הלכו לישון, טיפ מאיתנו: תעלימו ראיות!",
+     "#3 יש משחק? אל תעשו ספויילר לשליח.ה",
+     "#1 לבחור מי קם לשליח.",
+     "#5 הזמנת שתייה? תכינו את הכוסות כי הכי מבאס לקום אחרי שכבר התיישבת \n",
+     "הנה עשרה חוקים בזמן שמחכים לפיצה:"
+    ]
+   },
+   "assetVersion": 3,
+   "alt": ""
+  },
+  "inPack": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "Let's slice it up!",
+     "Swiftly, smoothly, done!",
+     "Boxing "
+    ],
+    "he": [
+     "יאללה חותכים ",
+     "שלאק שלאק שלאק ",
+     "מקפלים"
+    ]
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "inPreparation": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "We received the order - we're on it!",
+     "Opening the dough",
+     "Pampering with toppings"
+    ],
+    "he": [
+     "קיבלנו, אנחנו על זה!",
+     "פותחים את הבצק ",
+     "מפנקים בתוספות "
+    ]
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "nextToBeDelivered": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     ""
+    ],
+    "he": [
+     ""
+    ]
+   },
+   "assetVersion": 0,
+   "alt": ""
+  },
+  "ready": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "Ready, we're waiting for you with Hot Pizza!"
+    ],
+    "he": [
+     "מוכן, בואו לאסוף!"
+    ]
+   },
+   "assetVersion": 1,
+   "alt": ""
+  },
+  "timed": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     ""
+    ],
+    "he": [
+     ""
+    ]
+   },
+   "assetVersion": 0,
+   "alt": ""
+  },
+  "weMayBeLate": {
+   "changeTextEverySecond": 20,
+   "values": {
+    "enUS": [
+     "Sorry, we're running a little late, but we're on it!"
+    ],
+    "he": [
+     "ההזמנה שלך מתעכבת, אבל אנחנו על זה!"
+    ]
+   },
+   "assetVersion": 0,
+   "alt": ""
+  }
+ },
+ "youngChef": {
+  "Chef_Gallery": {
+   "value": {
+    "enUS": "general",
+    "he": "כללי"
+   },
+   "assets": {
+    "enUS": [
+     "Dictionary/Chef_Gallery/V2/1.png",
+     "Dictionary/Chef_Gallery/V2/2.jpeg",
+     "Dictionary/Chef_Gallery/V2/3.png",
+     "Dictionary/Chef_Gallery/V2/4.png",
+     "Dictionary/Chef_Gallery/V2/5.png",
+     "Dictionary/Chef_Gallery/V2/6.jpeg"
+    ],
+    "he": [
+     "Dictionary/Chef_Gallery/V2/1.png",
+     "Dictionary/Chef_Gallery/V2/2.jpeg",
+     "Dictionary/Chef_Gallery/V2/3.png",
+     "Dictionary/Chef_Gallery/V2/4.png",
+     "Dictionary/Chef_Gallery/V2/5.png",
+     "Dictionary/Chef_Gallery/V2/6.jpeg"
+    ]
+   }
+  }
+ }
+}

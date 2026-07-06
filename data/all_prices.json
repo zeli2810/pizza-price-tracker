@@ -1,0 +1,233 @@
+[
+  {
+    "date": "2026-06-26",
+    "timestamp": "2026-06-26 20:33:22",
+    "chains": {
+      "dominos": {
+        "pu": {
+          "family": 58.3,
+          "meal_single": 47.9,
+          "meal_double": 125.6
+        },
+        "dlv": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "branch_count": 76,
+        "error": null
+      },
+      "paisplus": {
+        "pu": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "dlv": {
+          "family": 75.0,
+          "meal_single": 60.0,
+          "meal_double": 119.0
+        },
+        "error": null
+      },
+      "pizzahut": {
+        "pu": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "dlv": {
+          "family": 69.9,
+          "meal_single": 75.0,
+          "meal_double": 140.0
+        },
+        "error": null,
+        "branch_count": 104
+      },
+      "papajohns": {
+        "pu": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "dlv": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "branch_count": 43,
+        "error": null
+      }
+    }
+  },
+  {
+    "date": "2026-06-27",
+    "timestamp": "2026-06-27 20:12:06",
+    "chains": {
+      "dominos": {
+        "pu": {
+          "family": 58.3,
+          "meal_single": 47.9,
+          "meal_double": 125.6
+        },
+        "dlv": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "error": null,
+        "branch_count": 64
+      },
+      "paisplus": {
+        "pu": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "dlv": {
+          "family": 75.0,
+          "meal_single": 60.0,
+          "meal_double": 119.0
+        },
+        "error": null
+      },
+      "pizzahut": {
+        "pu": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "dlv": {
+          "family": 69.9,
+          "meal_single": 75.0,
+          "meal_double": 140.0
+        },
+        "error": null,
+        "branch_count": 104
+      },
+      "papajohns": {
+        "pu": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "dlv": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "error": null,
+        "branch_count": 43
+      }
+    }
+  },
+  {
+    "date": "2026-06-28",
+    "timestamp": "2026-06-28 22:35:57",
+    "chains": {
+      "paisplus": {
+        "pu": {
+          "family": null,
+          "meal_single": null,
+          "meal_double": null
+        },
+        "dlv": {
+          "family": 75.0,
+          "meal_single": 60.0,
+          "meal_double": 119.0
+        },
+        "error": null
+      },
+      "pizzahut": {
+        "pu": {
+          "family": 69.9,
+          "meal_single": 75.0,
+          "meal_double": 140.0
+        },
+        "dlv": {
+          "family": 69.9,
+          "meal_single": 75.0,
+          "meal_double": 140.0
+        },
+        "error": null,
+        "branch_count": 104
+      },
+      "dominos": {
+        "pu": {
+          "family": 58.3,
+          "meal_single": 47.9,
+          "meal_double": 125.6
+        },
+        "dlv": {
+          "family": 58.3,
+          "meal_single": 47.9,
+          "meal_double": 125.6
+        },
+        "error": null,
+        "branch_count": 64
+      },
+      "papajohns": {
+        "pu": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "dlv": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "error": null,
+        "branch_count": 43
+      }
+    }
+  },
+  {
+    "date": "2026-07-06",
+    "timestamp": "2026-07-06 13:53:59",
+    "chains": {
+      "pizzahut": {
+        "pu": {
+          "family": 22.5,
+          "meal_single": 29.0,
+          "meal_double": 88.0
+        },
+        "dlv": {
+          "family": 22.5,
+          "meal_single": 29.0,
+          "meal_double": 88.0
+        },
+        "error": null,
+        "branch_count": 104
+      },
+      "dominos": {
+        "pu": {
+          "family": 58.3,
+          "meal_single": 36.0,
+          "meal_double": 96.0
+        },
+        "dlv": {
+          "family": 58.3,
+          "meal_single": 36.0,
+          "meal_double": 96.0
+        },
+        "error": null,
+        "branch_count": 64
+      },
+      "papajohns": {
+        "pu": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "dlv": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "error": null,
+        "branch_count": 43
+      }
+    }
+  }
+]
