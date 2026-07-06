@@ -37,7 +37,6 @@ jobs:
 
       - name: Install dependencies
         if: env.SKIP != 'true'
-        working-directory: pizza_tracker
         run: |
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium chrome
@@ -45,7 +44,6 @@ jobs:
 
       - name: Run scraper
         if: env.SKIP != 'true'
-        working-directory: pizza_tracker
         run: xvfb-run -a python multi_scraper.py
 
       - name: Commit updated price data
@@ -53,6 +51,6 @@ jobs:
         run: |
           git config user.name "pizza-price-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add pizza_tracker/data/all_prices.json
+          git add data/all_prices.json
           git diff --quiet --cached || git commit -m "Update daily price data [skip ci]"
           git push
