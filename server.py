@@ -1,7 +1,8 @@
 """
-HTTP server for the pizza price dashboard.
+Local dev HTTP server for the pizza price dashboard (mirrors the production
+Vercel + GitHub Actions setup closely enough for local testing).
   GET  /*             → static files (dashboard.html, data/, ...)
-  POST /run-scrape    → run multi_scraper.py, stream stdout as text/plain
+  POST /api/refresh   → run multi_scraper.py, stream stdout as text/plain
 Run: python server.py
 Then open: http://localhost:8765/dashboard.html
 """
@@ -24,8 +25,13 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # suppress access logs
 
+    def do_GET(self):
+        if self.path == "/":
+            self.path = "/dashboard.html"
+        super().do_GET()
+
     def do_POST(self):
-        if self.path != "/run-scrape":
+        if self.path != "/api/refresh":
             self.send_error(404)
             return
 

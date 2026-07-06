@@ -24,47 +24,6 @@ if sys.platform == "win32":
 
 DATA_FILE = Path(__file__).parent / "data" / "all_prices.json"
 
-# ── Optional Azure Blob persistence ──────────────────────────────────────────
-# If AZURE_STORAGE_CONNECTION_STRING is set (e.g. when running in Azure), history
-# is synced to/from a blob so it survives container restarts/redeploys. Locally
-# (no connection string) this is a no-op and DATA_FILE alone is used, unchanged.
-import os
-
-_BLOB_CONN = os.environ.get("AZURE_STORAGE_CONNECTION_STRING")
-_BLOB_CONTAINER = os.environ.get("AZURE_STORAGE_CONTAINER", "pizza-data")
-_BLOB_NAME = "all_prices.json"
-
-def _blob_client():
-    if not _BLOB_CONN:
-        return None
-    from azure.storage.blob import BlobServiceClient
-    svc = BlobServiceClient.from_connection_string(_BLOB_CONN)
-    try:
-        svc.create_container(_BLOB_CONTAINER)
-    except Exception:
-        pass  # already exists
-    return svc.get_blob_client(container=_BLOB_CONTAINER, blob=_BLOB_NAME)
-
-def _blob_pull():
-    """Download the blob to DATA_FILE before reading, if blob storage is configured."""
-    client = _blob_client()
-    if not client:
-        return
-    try:
-        DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
-        with open(DATA_FILE, "wb") as f:
-            f.write(client.download_blob().readall())
-    except Exception:
-        pass  # blob may not exist yet (first run)
-
-def _blob_push():
-    """Upload DATA_FILE to the blob after writing, if blob storage is configured."""
-    client = _blob_client()
-    if not client:
-        return
-    with open(DATA_FILE, "rb") as f:
-        client.upload_blob(f, overwrite=True)
-
 UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
       "AppleWebKit/537.36 (KHTML, like Gecko) "
       "Chrome/124.0.0.0 Safari/537.36")
@@ -84,7 +43,6 @@ def _empty_prices():
     return {"family": None, "meal_single": None, "meal_double": None}
 
 def load_history():
-    _blob_pull()
     if DATA_FILE.exists():
         with open(DATA_FILE, encoding="utf-8-sig") as f:
             return json.load(f)
@@ -94,7 +52,6 @@ def save_history(history):
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     with open(DATA_FILE, "w", encoding="utf-8") as f:
         json.dump(history, f, ensure_ascii=False, indent=2)
-    _blob_push()
 
 def pick_price(text):
     """Extract first reasonable price from text."""

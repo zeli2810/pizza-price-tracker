@@ -1,6 +1,2 @@
 playwright==1.49.1
 requests==2.32.3
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-apscheduler==3.11.0
-azure-storage-blob==12.24.0

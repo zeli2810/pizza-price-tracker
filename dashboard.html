@@ -163,7 +163,7 @@ function renderTable() {
 
 async function loadData() {
   try {
-    const r = await fetch('/data?t=' + Date.now());
+    const r = await fetch('data/all_prices.json?t=' + Date.now());
     if (!r.ok) throw new Error();
     return await r.json();
   } catch {
@@ -213,6 +213,36 @@ function exportExcel() {
   XLSX.writeFile(wb, `pizza_prices_${today}.xlsx`);
 }
 
+function refreshDone(ok, btn, icon, label) {
+  icon.style.animation = '';
+  icon.textContent = ok ? '✓' : '✗';
+  label.textContent = ok ? 'עודכן!' : 'שגיאה';
+  btn.disabled = false;
+  setTimeout(() => {
+    icon.textContent = '↻';
+    label.textContent = 'רענן עכשיו';
+  }, 4000);
+}
+
+async function pollForUpdate(prevLastTimestamp, log) {
+  const maxAttempts = 24; // ~6 minutes at 15s each — GitHub Actions run + Vercel redeploy takes a few minutes
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 15000));
+    const fresh = await loadData();
+    const freshLast = fresh[fresh.length - 1];
+    log.textContent = `בודק אם העדכון הסתיים... (ניסיון ${i + 1}/${maxAttempts})`;
+    if (freshLast && freshLast.timestamp !== prevLastTimestamp) {
+      history = fresh;
+      const last = history[history.length - 1];
+      document.getElementById('lastUpdate').innerHTML =
+        `עדכון אחרון: <b>${last.timestamp || last.date}</b>`;
+      renderTable();
+      return true;
+    }
+  }
+  return false;
+}
+
 async function runScrape() {
   const btn = document.getElementById('runBtn');
   const icon = document.getElementById('runIcon');
@@ -226,43 +256,54 @@ async function runScrape() {
   log.style.display = 'block';
   log.textContent = '';
 
+  const prevLast = history[history.length - 1];
+  const prevLastTimestamp = prevLast ? prevLast.timestamp : null;
+
   try {
-    const resp = await fetch('/run-scrape', { method: 'POST' });
-    const reader = resp.body.getReader();
-    const dec = new TextDecoder();
-    let done = false;
-    while (!done) {
-      const { value, done: d } = await reader.read();
-      done = d;
-      if (value) {
-        const chunk = dec.decode(value);
-        log.textContent += chunk;
-        log.scrollTop = log.scrollHeight;
-        if (chunk.includes('__DONE__')) break;
+    const resp = await fetch('/api/refresh', { method: 'POST' });
+    const contentType = resp.headers.get('content-type') || '';
+
+    if (contentType.includes('text/plain')) {
+      // Local dev server (server.py): scrape runs synchronously, log streams live.
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let done = false;
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (value) {
+          const chunk = dec.decode(value);
+          log.textContent += chunk;
+          log.scrollTop = log.scrollHeight;
+          if (chunk.includes('__DONE__')) break;
+        }
       }
-    }
-    const ok = log.textContent.includes('__DONE__OK__');
-    icon.style.animation = '';
-    icon.textContent = ok ? '✓' : '✗';
-    label.textContent = ok ? 'עודכן!' : 'שגיאה';
-    if (ok) {
-      history = await loadData();
-      const last = history[history.length - 1];
-      document.getElementById('lastUpdate').innerHTML =
-        last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b>` : 'אין נתונים עדיין';
-      renderTable();
+      const ok = log.textContent.includes('__DONE__OK__');
+      if (ok) {
+        history = await loadData();
+        const last = history[history.length - 1];
+        document.getElementById('lastUpdate').innerHTML =
+          last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b>` : 'אין נתונים עדיין';
+        renderTable();
+      }
+      refreshDone(ok, btn, icon, label);
+    } else {
+      // Production (Vercel): this just kicks off a GitHub Actions run —
+      // poll until the new data shows up (usually a few minutes).
+      const body = await resp.json().catch(() => ({}));
+      if (!resp.ok || body.ok === false) {
+        log.textContent = `שגיאה בהפעלת העדכון: ${body.error || resp.status}`;
+        refreshDone(false, btn, icon, label);
+        return;
+      }
+      log.textContent = 'העדכון התחיל ב-GitHub Actions... זה עלול להימשך כ-2-4 דקות.';
+      const ok = await pollForUpdate(prevLastTimestamp, log);
+      log.textContent = ok ? 'העדכון הסתיים בהצלחה!' : 'העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.';
+      refreshDone(ok, btn, icon, label);
     }
   } catch (e) {
-    icon.style.animation = '';
-    icon.textContent = '✗';
-    label.textContent = 'שגיאת חיבור';
     log.textContent += `\nError: ${e.message}`;
-  } finally {
-    btn.disabled = false;
-    setTimeout(() => {
-      icon.textContent = '↻';
-      label.textContent = 'רענן עכשיו';
-    }, 3000);
+    refreshDone(false, btn, icon, label);
   }
 }
 
