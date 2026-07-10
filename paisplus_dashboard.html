@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>הצעות פיצה – פייס פלוס</title>
+<style>
+:root {
+  --bg:       #0d1117;
+  --surface:  #161b22;
+  --surface2: #1c2128;
+  --border:   #30363d;
+  --text:     #e6edf3;
+  --muted:    #8b949e;
+  --accent:   #e42c64;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', Arial, sans-serif;
+  min-height: 100vh;
+  padding: 28px 16px 56px;
+}
+header { text-align: center; margin-bottom: 24px; }
+h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -.4px; }
+.subtitle { margin-top: 6px; font-size: .85rem; color: var(--muted); }
+.last-update {
+  display: inline-block; margin-top: 12px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 16px;
+  font-size: .78rem; color: var(--muted);
+}
+.last-update b { color: var(--text); }
+
+.toolbar {
+  display: flex; justify-content: center; gap: 10px; margin-top: 14px; flex-wrap: wrap;
+}
+button.action {
+  background: var(--surface2); border: 1px solid var(--border); border-radius: 20px;
+  color: var(--text); font-size: .82rem; font-weight: 600; padding: 6px 18px;
+  cursor: pointer; transition: all .15s; display: inline-flex; align-items: center; gap: 7px;
+}
+button.action:hover { background: var(--border); }
+button.action:disabled { opacity: .6; cursor: default; }
+.refresh-note {
+  display: inline-flex; align-items: center; gap: 7px;
+  font-size: .82rem; font-weight: 600; color: var(--muted);
+  padding: 6px 4px;
+}
+
+#runLog {
+  display: none; margin: 10px auto 0; max-width: 640px;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+  padding: 10px 14px; font-size: .72rem; color: var(--muted); font-family: monospace;
+  max-height: 140px; overflow-y: auto; text-align: right; direction: ltr;
+}
+
+.table-wrap {
+  max-width: 1700px; margin: 24px auto 0;
+  border: 1px solid var(--border); border-radius: 12px;
+  overflow: auto; max-height: 78vh;
+}
+table { width: 100%; border-collapse: collapse; font-size: .78rem; min-width: 1600px; }
+thead { background: var(--surface2); position: sticky; top: 0; z-index: 1; }
+th {
+  padding: 9px 8px; text-align: right;
+  font-size: .68rem; font-weight: 700;
+  letter-spacing: .2px; color: var(--muted); white-space: nowrap;
+  border-bottom: 1px solid var(--border);
+}
+td {
+  padding: 8px 8px; text-align: right; vertical-align: top;
+  border-top: 1px solid var(--border);
+  max-width: 260px;
+}
+td.num  { text-align: center; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.wrap { white-space: normal; word-break: break-word; }
+tr:hover td { background: rgba(255,255,255,.022); }
+tr.preferred td { background: rgba(228,44,100,.06); }
+
+.badge {
+  display: inline-block; padding: 2px 10px; border-radius: 12px;
+  font-size: .68rem; font-weight: 700;
+}
+.badge-yes { background: rgba(228,44,100,.18); color: #ff7fa8; }
+.badge-no  { color: var(--muted); }
+
+.cube-thumb { display: block; }
+.cube-thumb img {
+  width: 90px; height: auto; border-radius: 6px; border: 1px solid var(--border);
+}
+a.plain-link { color: #6cb6ff; text-decoration: none; font-size: .74rem; }
+a.plain-link:hover { text-decoration: underline; }
+
+.no-data { text-align: center; padding: 50px; color: var(--muted); }
+footer { text-align: center; margin-top: 24px; color: var(--muted); font-size: .72rem; }
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+</style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header>
+  <h1>🍕 הצעות פיצה – פייס פלוס</h1>
+  <div class="subtitle">מעקב יומי אחרי כל ההצעות בעמוד <a class="plain-link" href="https://paisplus.co.il/category/373" target="_blank">paisplus.co.il/category/373</a></div>
+  <div class="last-update" id="lastUpdate">טוען...</div>
+  <div class="toolbar">
+    <button class="action" id="runBtn" onclick="runScrape()">
+      <span id="runIcon">↻</span><span id="runLabel">רענן עכשיו</span>
+    </button>
+    <button class="action" onclick="exportExcel()">⬇ ייצוא לאקסל</button>
+  </div>
+  <div id="runLog"></div>
+</header>
+
+<div class="table-wrap">
+  <table>
+    <thead>
+      <tr>
+        <th>תאריך</th>
+        <th>שורה</th>
+        <th>חברת הפיצה</th>
+        <th>מהות ההצעה</th>
+        <th>קטגוריה</th>
+        <th>מה יש חוץ מפיצות</th>
+        <th>מחיר</th>
+        <th>מועדפת</th>
+        <th>מידע נוסף</th>
+        <th>כל הטקסט בקוביה</th>
+        <th>צילום הקוביה</th>
+        <th>צילום מסך העמוד</th>
+      </tr>
+    </thead>
+    <tbody id="tblBody"><tr><td class="no-data" colspan="12">טוען...</td></tr></tbody>
+  </table>
+</div>
+
+<footer>נסקר אוטומטית מדי יום ב-10:00 · חברת הפיצה והקטגוריה מסווגות אוטומטית מתוך הטקסט/לוגו בקוביה — בדקו את הצילום בהצעות שלא זוהו</footer>
+
+<script>
+// Path handling for three hosting situations:
+//   1. Opened from disk (file://)         → talk to the local dev server.
+//   2. Served over http/https             → use RELATIVE paths, so it works
+//      both on localhost and on a GitHub Pages project site whose URL is
+//      under a sub-path (…/pizza-price-tracker/).
+// Relative paths (no leading slash) resolve against the current page URL,
+// which is exactly what a project sub-path needs.
+const LOCAL = location.protocol === 'file:';
+const BASE  = LOCAL ? 'http://localhost:8765/' : '';   // note: keeps trailing slash
+const asset = p => p ? (LOCAL ? BASE + p : p) : p;
+
+// GitHub Pages is static — there is no /api backend to run a live scrape.
+const HAS_REFRESH_BACKEND = LOCAL || !/\.github\.io$/i.test(location.hostname);
+
+let offers = [];
+
+async function loadData() {
+  try {
+    const r = await fetch(BASE + 'data/paisplus/offers.json?t=' + Date.now());
+    if (!r.ok) throw new Error();
+    return await r.json();
+  } catch {
+    return [];
+  }
+}
+
+function sortedOffers(list) {
+  return [...list].sort((a, b) => {
+    if (a.date !== b.date) return a.date < b.date ? 1 : -1; // newest date first
+    return (a.position || 0) - (b.position || 0);
+  });
+}
+
+function esc(s) {
+  return (s ?? '').toString()
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tblBody');
+  const rows = sortedOffers(offers);
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td class="no-data" colspan="12">אין נתונים עדיין. לחצו "רענן עכשיו".</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = rows.map(o => `
+    <tr class="${o.is_preferred ? 'preferred' : ''}">
+      <td class="num">${esc(o.date)}</td>
+      <td class="num">${o.row ?? '—'}</td>
+      <td class="wrap">${esc(o.company)}</td>
+      <td class="wrap">${esc(o.offer_text)}</td>
+      <td class="wrap">${esc(o.category)}</td>
+      <td class="wrap">${esc(o.extras) || '—'}</td>
+      <td class="num">${esc(o.price_text) || '—'}</td>
+      <td class="num">${o.is_preferred
+        ? '<span class="badge badge-yes">⭐ מועדפת</span>'
+        : '<span class="badge badge-no">—</span>'}</td>
+      <td class="wrap">${esc(o.additional_info) || '—'}</td>
+      <td class="wrap">${esc(o.full_text)}</td>
+      <td>${o.cube_screenshot
+        ? `<a class="cube-thumb" href="${esc(asset(o.cube_screenshot))}" target="_blank"><img src="${esc(asset(o.cube_screenshot))}" alt="צילום קוביה"></a>`
+        : '—'}</td>
+      <td>${o.page_screenshot
+        ? `<a class="plain-link" href="${esc(asset(o.page_screenshot))}" target="_blank">צפייה בעמוד המלא ↗</a>`
+        : '—'}</td>
+    </tr>
+  `).join('');
+}
+
+async function init() {
+  // On a static host (GitHub Pages) there is no backend to run a live scrape —
+  // replace the manual-refresh button with a note about the daily auto-update.
+  if (!HAS_REFRESH_BACKEND) {
+    const btn = document.getElementById('runBtn');
+    if (btn) {
+      btn.remove();
+      const note = document.createElement('span');
+      note.className = 'refresh-note';
+      note.textContent = '↻ מתעדכן אוטומטית מדי יום ב-10:00';
+      document.querySelector('.toolbar').prepend(note);
+    }
+  }
+
+  offers = await loadData();
+  const last = sortedOffers(offers)[0];
+  document.getElementById('lastUpdate').innerHTML =
+    last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b> · ${offers.filter(o => o.date === last.date).length} הצעות` : 'אין נתונים עדיין';
+  renderTable();
+}
+
+function exportExcel() {
+  if (!offers.length) { alert('אין נתונים לייצוא'); return; }
+
+  const headers = [
+    'תאריך', 'שורה', 'חברת הפיצה', 'מהות ההצעה', 'קטגוריה',
+    'מה יש חוץ מפיצות', 'מחיר', 'מועדפת', 'מידע נוסף',
+    'כל הטקסט בקוביה', 'צילום הקוביה (נתיב בשרת)', 'צילום מסך העמוד (נתיב בשרת)',
+  ];
+  const rows = [headers];
+  sortedOffers(offers).forEach(o => {
+    rows.push([
+      o.date, o.row ?? '', o.company, o.offer_text, o.category,
+      o.extras, o.price_text, o.is_preferred ? 'כן' : 'לא', o.additional_info,
+      o.full_text, o.cube_screenshot || '', o.page_screenshot || '',
+    ]);
+  });
+
+  const wb = XLSX.utils.book_new();
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = headers.map((_, i) => ({ wch: [10, 6, 16, 34, 20, 24, 12, 9, 20, 40, 34, 34][i] || 18 }));
+  ws['!freeze'] = { xSplit: 0, ySplit: 1 };
+  XLSX.utils.book_append_sheet(wb, ws, 'הצעות פיצה');
+  const today = new Date().toISOString().slice(0, 10);
+  XLSX.writeFile(wb, `paisplus_pizza_offers_${today}.xlsx`);
+}
+
+function refreshDone(ok, btn, icon, label) {
+  icon.style.animation = '';
+  icon.textContent = ok ? '✓' : '✗';
+  label.textContent = ok ? 'עודכן!' : 'שגיאה';
+  btn.disabled = false;
+  setTimeout(() => {
+    icon.textContent = '↻';
+    label.textContent = 'רענן עכשיו';
+  }, 4000);
+}
+
+async function pollForUpdate(prevLastTimestamp, log) {
+  const maxAttempts = 24; // ~6 minutes at 15s each — scrape + redeploy takes a few minutes
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, 15000));
+    const fresh = await loadData();
+    const freshLast = sortedOffers(fresh)[0];
+    log.textContent = `בודק אם העדכון הסתיים... (ניסיון ${i + 1}/${maxAttempts})`;
+    if (freshLast && freshLast.timestamp !== prevLastTimestamp) {
+      offers = fresh;
+      const last = sortedOffers(offers)[0];
+      document.getElementById('lastUpdate').innerHTML =
+        `עדכון אחרון: <b>${last.timestamp || last.date}</b> · ${offers.filter(o => o.date === last.date).length} הצעות`;
+      renderTable();
+      return true;
+    }
+  }
+  return false;
+}
+
+async function runScrape() {
+  const btn = document.getElementById('runBtn');
+  const icon = document.getElementById('runIcon');
+  const label = document.getElementById('runLabel');
+  const log = document.getElementById('runLog');
+
+  btn.disabled = true;
+  icon.style.display = 'inline-block';
+  icon.style.animation = 'spin 1s linear infinite';
+  label.textContent = 'רץ...';
+  log.style.display = 'block';
+  log.textContent = '';
+
+  const prevLast = sortedOffers(offers)[0];
+  const prevLastTimestamp = prevLast ? prevLast.timestamp : null;
+
+  try {
+    const resp = await fetch(BASE + 'api/refresh_paisplus', { method: 'POST' });
+    const contentType = resp.headers.get('content-type') || '';
+
+    if (contentType.includes('text/plain')) {
+      // Local dev server (server.py): scrape runs synchronously, log streams live.
+      const reader = resp.body.getReader();
+      const dec = new TextDecoder();
+      let done = false;
+      while (!done) {
+        const { value, done: d } = await reader.read();
+        done = d;
+        if (value) {
+          const chunk = dec.decode(value);
+          log.textContent += chunk;
+          log.scrollTop = log.scrollHeight;
+          if (chunk.includes('__DONE__')) break;
+        }
+      }
+      const ok = log.textContent.includes('__DONE__OK__');
+      if (ok) {
+        offers = await loadData();
+        const last = sortedOffers(offers)[0];
+        document.getElementById('lastUpdate').innerHTML =
+          last ? `עדכון אחרון: <b>${last.timestamp || last.date}</b> · ${offers.filter(o => o.date === last.date).length} הצעות` : 'אין נתונים עדיין';
+        renderTable();
+      }
+      refreshDone(ok, btn, icon, label);
+    } else {
+      // Production (Vercel): this just kicks off a GitHub Actions run —
+      // poll until the new data shows up (usually a few minutes).
+      const body = await resp.json().catch(() => ({}));
+      if (!resp.ok || body.ok === false) {
+        log.textContent = `שגיאה בהפעלת העדכון: ${body.error || resp.status}`;
+        refreshDone(false, btn, icon, label);
+        return;
+      }
+      log.textContent = 'העדכון התחיל ב-GitHub Actions... זה עלול להימשך כ-2-4 דקות.';
+      const ok = await pollForUpdate(prevLastTimestamp, log);
+      log.textContent = ok ? 'העדכון הסתיים בהצלחה!' : 'העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.';
+      refreshDone(ok, btn, icon, label);
+    }
+  } catch (e) {
+    log.textContent += `\nError: ${e.message}`;
+    if (BASE) {
+      log.textContent += `\nנראה שהעמוד נפתח ישירות מהקובץ — ודאו שהשרת המקומי רץ (python server.py) ונסו שוב, או פתחו את http://localhost:8765/paisplus_dashboard.html`;
+    }
+    refreshDone(false, btn, icon, label);
+  }
+}
+
+window.addEventListener('load', init);
+</script>
+</body>
+</html>

@@ -1,10 +1,12 @@
 """
 Local dev HTTP server for the pizza price dashboard (mirrors the production
 Vercel + GitHub Actions setup closely enough for local testing).
-  GET  /*             → static files (dashboard.html, data/, ...)
-  POST /api/refresh   → run multi_scraper.py, stream stdout as text/plain
+  GET  /*                     → static files (dashboard.html, data/, ...)
+  POST /api/refresh           → run multi_scraper.py, stream stdout as text/plain
+  POST /api/refresh_paisplus  → run paisplus_scraper.py, stream stdout as text/plain
 Run: python server.py
 Then open: http://localhost:8765/dashboard.html
+        or http://localhost:8765/paisplus_dashboard.html
 """
 
 import http.server
@@ -17,6 +19,11 @@ import threading
 PORT = 8765
 DIR  = os.path.dirname(os.path.abspath(__file__))
 
+if sys.stdout is None:
+    # Running under pythonw.exe (no console, e.g. auto-started at logon) —
+    # print() would crash, so silence output.
+    sys.stdout = sys.stderr = open(os.devnull, "w")
+
 
 class Handler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *args, **kwargs):
@@ -25,23 +32,32 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def log_message(self, fmt, *args):
         pass  # suppress access logs
 
+    def end_headers(self):
+        # CORS on every response, so the dashboard also works when opened
+        # directly from disk (file://) and fetches data cross-origin.
+        self.send_header("Access-Control-Allow-Origin", "*")
+        super().end_headers()
+
     def do_GET(self):
         if self.path == "/":
             self.path = "/dashboard.html"
         super().do_GET()
 
     def do_POST(self):
-        if self.path != "/api/refresh":
+        scrapers = {
+            "/api/refresh": "multi_scraper.py",
+            "/api/refresh_paisplus": "paisplus_scraper.py",
+        }
+        if self.path not in scrapers:
             self.send_error(404)
             return
 
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Cache-Control", "no-cache")
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.end_headers()
 
-        scraper = os.path.join(DIR, "multi_scraper.py")
+        scraper = os.path.join(DIR, scrapers[self.path])
         try:
             proc = subprocess.Popen(
                 [sys.executable, scraper],
@@ -70,7 +86,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def do_OPTIONS(self):
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Methods", "POST, GET, OPTIONS")
         self.end_headers()
 
