@@ -1,0 +1,24 @@
+name: Probe paisplus reachability
+on:
+  workflow_dispatch: {}
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: curl the page
+        run: |
+          echo "=== HTTP status + size ==="
+          curl -s -o page.html -w "status=%{http_code} size=%{size_download} time=%{time_total}\n" \
+            -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36" \
+            https://paisplus.co.il/category/373 || true
+          echo "=== card-item count ==="
+          grep -o "card-item" page.html | wc -l || true
+          echo "=== card-title count ==="
+          grep -o "card-title" page.html | wc -l || true
+          echo "=== queue-it / block markers ==="
+          grep -o -i -E "queue-it|Access Denied|blocked|forbidden|Just a moment|cf-browser|captcha" page.html | sort | uniq -c | head || true
+          echo "=== first 400 chars ==="
+          head -c 400 page.html || true
+          echo
+          echo "=== title tag ==="
+          grep -o -i "<title>[^<]*</title>" page.html | head || true
