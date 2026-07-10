@@ -275,6 +275,14 @@ def run_scrape(verbose=True):
 
         browser.close()
 
+    # Guard: never let an empty scrape (e.g. blocked by queue-it on CI, or a
+    # network hiccup) wipe out good data that's already saved and live.
+    if not offers:
+        if verbose:
+            print("\n  ⚠ 0 הצעות נסרקו — שומר על הנתונים הקיימים ולא דורס. "
+                  "(ייתכן שהאתר חסם את הגישה)")
+        return offers
+
     # Save — replace any prior entries for today, then append the fresh batch.
     DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
     history = []
