@@ -21,7 +21,16 @@ window.FIREBASE_CONFIG = {
   measurementId: "G-YW533F0902"
 };
 
-// Optional: URL of the "refresh now" trigger (the small Vercel function that
-// kicks off the GitHub Actions scraper). Leave empty to hide the button.
-// Example: "https://pizza-price-tracker.vercel.app/api/refresh"
+// "Refresh now" button — two modes:
+//
+// 1) TRUE one-click (best): set REFRESH_ENDPOINT to a small serverless function
+//    that holds a GitHub token and triggers the scraper (e.g. the included
+//    Vercel function). Clicking then scrapes and auto-updates the dashboard.
+//    Example: "https://pizza-price-tracker.vercel.app/api/refresh"
 window.REFRESH_ENDPOINT = "";
+//
+// 2) Fallback (zero setup): if REFRESH_ENDPOINT is empty, the button opens the
+//    GitHub Actions page below, where one click on "Run workflow" starts the
+//    scrape. Data updates in Firestore within a few minutes; reload to see it.
+window.REFRESH_WORKFLOW_URL =
+  "https://github.com/zeli2810/pizza-price-tracker/actions/workflows/scrape.yml";

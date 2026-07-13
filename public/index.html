@@ -403,9 +403,20 @@ window.exportExcel=function(){
 
 // ---- manual refresh ----------------------------------------------------------
 window.runScrape=async function(){
-  const endpoint=window.REFRESH_ENDPOINT; if(!endpoint) return;
+  const endpoint=window.REFRESH_ENDPOINT;
+  const log=document.getElementById('runLog');
+  // Fallback mode: no server middleman → open the GitHub Actions page.
+  if(!endpoint){
+    if(window.REFRESH_WORKFLOW_URL){
+      window.open(window.REFRESH_WORKFLOW_URL,'_blank','noopener');
+      log.style.display='block';
+      log.innerHTML='נפתח GitHub Actions בלשונית חדשה. לחצו שם על <b>“Run workflow”</b> '+
+        'כדי להתחיל סריקה. הנתונים יתעדכנו כאן תוך 2–4 דקות — רעננו את הדף.';
+    }
+    return;
+  }
   const btn=document.getElementById('runBtn'),icon=document.getElementById('runIcon'),
-        label=document.getElementById('runLabel'),log=document.getElementById('runLog');
+        label=document.getElementById('runLabel');
   btn.disabled=true; icon.style.animation='spin 1s linear infinite';
   label.textContent='רץ…'; log.style.display='block'; log.textContent='מפעיל סריקה ב-GitHub Actions…';
   const prevTs=history.length?history[history.length-1].timestamp:null;
@@ -463,7 +474,8 @@ async function init(){
     const b=document.getElementById('cfgBanner'); b.style.display='block';
     b.innerHTML='Firebase לא הוגדר. מלאו את <code>public/firebase-config.js</code>.';
   }
-  if(window.REFRESH_ENDPOINT) document.getElementById('runBtn').style.display='inline-flex';
+  if(window.REFRESH_ENDPOINT || window.REFRESH_WORKFLOW_URL)
+    document.getElementById('runBtn').style.display='inline-flex';
   renderAll();
 }
 window.addEventListener('load',init);
