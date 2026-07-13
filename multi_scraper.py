@@ -599,9 +599,9 @@ def scrape_dominos(pw):
             r["pu"] = api["pu"]
         if dlv_miss and any(v is not None for v in api["dlv"].values()):
             r["dlv"] = api["dlv"]
-        if all(v is None for v in r["dlv"].values()) and any(v is not None for v in r["pu"].values()):
-            r["dlv"] = dict(r["pu"])
-            r["error"] = (r.get("error") or "") + " | delivery=pickup (API limitation)"
+    # NOTE: we intentionally do NOT copy pickup→delivery. Domino's delivery has
+    # a different (marked-up) price list that this scraper can't reliably reach
+    # yet, so delivery is left empty ("—") rather than showing a fake value.
 
     return r
 
