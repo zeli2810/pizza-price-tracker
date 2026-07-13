@@ -232,18 +232,18 @@
   },
   {
     "date": "2026-07-13",
-    "timestamp": "2026-07-13 16:46:08",
+    "timestamp": "2026-07-13 17:09:18",
     "chains": {
       "pizzahut": {
         "pu": {
-          "family": 22.5,
-          "meal_single": 35.0,
-          "meal_double": 88.0
+          "family": 74.9,
+          "meal_single": 89,
+          "meal_double": 125
         },
         "dlv": {
-          "family": 22.5,
-          "meal_single": 35.0,
-          "meal_double": 88.0
+          "family": 74.9,
+          "meal_single": 89,
+          "meal_double": 125
         },
         "error": null,
         "branch_count": 104
