@@ -138,6 +138,87 @@ def classify_prices(pairs):
     return {"family": pick(families), "meal_single": pick(singles), "meal_double": pick(doubles)}
 
 
+# ── Pizza Hut: structure-aware classifier ──────────────────────────────────────
+# Pizza Hut's menu is a "promo swamp": the SAME product is listed at many
+# simultaneous prices (retailer deals, app deals, holiday deals…). A plain
+# cheapest-match would grab a random promo. Per the product decision we track
+# the STANDARD price, identified via category structure + clean item names.
+# Best-effort: if Pizza Hut restructures its menu this may need re-tuning.
+PH_RETAILER_PROMO = ["שופרסל", "וולט", "סופר פארם", "בנק", "haat", "סיבוס", "עכו",
+                     "טיקטוק", "ווצאפ", "sms", "נופשונית", "פסח", "מבצע", "סליידר",
+                     "הטבת", "finest", "tiktok", "ta ", "שופר"]
+
+def _ph_is_promo(name):
+    low = name.lower()
+    return any(p in low for p in PH_RETAILER_PROMO)
+
+def _ph_has_embedded_price(name):
+    # A 2-3 digit number inside a MEAL name is a baked-in promo price (pizza
+    # *sizes* like 14"/16" only appear in single-pizza names, not meal names).
+    return bool(re.search(r"\d{2,3}", name))
+
+def _ph_name(x):
+    n = x.get("name") or ""
+    return (n.get("he") if isinstance(n, dict) else n) or ""
+
+def classify_pizzahut(menu):
+    """Classify a Pizza Hut getMenu payload into family/meal_single/meal_double."""
+    if not isinstance(menu, dict):
+        return _empty_prices()
+    items = {it.get("id"): it for it in menu.get("items", []) if it.get("active", True)}
+    cats = menu.get("menu_categories", [])
+
+    def price(it):
+        p = it.get("price")
+        return p if isinstance(p, (int, float)) and p > 0 else None
+
+    # family: cheapest L pizza from the base-pizza categories (excludes the
+    # personal 7.5"/S size and the XL/16"/giant size).
+    fam = []
+    for c in cats:
+        if c.get("hidden_category"):
+            continue
+        cn = _ph_name(c)
+        if "פיצות" in cn and ("דקות" in cn or "עבות" in cn or "pan" in cn.lower()):
+            for iid in c.get("items", []):
+                it = items.get(iid)
+                if not it:
+                    continue
+                n, p = _ph_name(it), price(it)
+                if p is None:
+                    continue
+                if any(s in n for s in ["7.5", "אישי", "אישית"]) or n.strip().endswith(" S"):
+                    continue
+                if "XL" in n or "16" in n or "ענקית" in n:
+                    continue
+                fam.append(p)
+
+    # single: one family pizza + garlic bread + drink, standard (non-promo) item.
+    sing = []
+    for it in items.values():
+        n, p = _ph_name(it), price(it)
+        if p is None:
+            continue
+        if ("משפחתית" in n and "לחם שום" in n and "שתי" in n
+                and not n.strip().startswith("2") and "2 " not in n
+                and not _ph_is_promo(n) and not _ph_has_embedded_price(n)):
+            sing.append(p)
+
+    # double: the plain "2 family pizzas" item (no extras, no promo prefix).
+    dbl = []
+    for it in items.values():
+        n, p = _ph_name(it), price(it)
+        if p is None:
+            continue
+        if (n.strip().startswith("2 משפחתיות") and "+" not in n
+                and not _ph_is_promo(n) and not _ph_has_embedded_price(n)):
+            dbl.append(p)
+
+    return {"family": min(fam) if fam else None,
+            "meal_single": min(sing) if sing else None,
+            "meal_double": min(dbl) if dbl else None}
+
+
 # ── Domino's ──────────────────────────────────────────────────────────────────
 
 def _dominos_branch_count():
@@ -654,27 +735,16 @@ def scrape_pizzahut(page):
         page.wait_for_timeout(5000)
 
         if dlv_data:
-            r["dlv"].update(classify_prices(walk_json_prices(dlv_data)))
+            prices = classify_pizzahut(dlv_data)
         else:
-            # Fallback: parse rendered DOM -> goes to dlv
-            dom_result = _pizzahut_dom(page)
-            r["dlv"].update({k: v for k, v in dom_result.items() if k in r["dlv"]})
+            # Fallback: parse rendered DOM
+            prices = {k: v for k, v in _pizzahut_dom(page).items()
+                      if k in ("family", "meal_single", "meal_double")}
 
-        # Try toggling to pickup — several possible selectors
-        current_menu[0] = "pu"
-        for pu_sel in [
-            "text=איסוף עצמי", "text=איסוף", "text=Take Away", "text=Takeaway",
-            "[data-service-type='takeaway']", "[data-type='pickup']",
-            "button:has-text('איסוף')", ".service-type-pickup",
-        ]:
-            try:
-                page.click(pu_sel, timeout=2000)
-                page.wait_for_timeout(3000)
-                if pu_data:
-                    r["pu"].update(classify_prices(walk_json_prices(pu_data)))
-                    break
-            except Exception:
-                pass
+        # Pizza Hut prices are identical for pickup and delivery (only a delivery
+        # fee differs), so the one captured menu populates both services.
+        r["dlv"].update(prices)
+        r["pu"].update(prices)
 
         if branch_count[0]:
             r["branch_count"] = branch_count[0]
