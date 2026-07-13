@@ -8,13 +8,14 @@
 :root{
   --bg:#0d1117; --surface:#161b22; --surface2:#1c2128; --border:#30363d;
   --text:#e6edf3; --muted:#8b949e; --good:#3fb950; --bad:#f85149; --best:#d29922;
+  --accent:#2f81f7;
   --c-dominos:#0078AE; --c-pizzahut:#E31837; --c-papajohns:#006341;
   --c-paisplus:#7c3aed; --c-wolt:#00b8d4;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;
   min-height:100vh;padding:24px 14px 60px}
-header{text-align:center;margin-bottom:18px}
+header{text-align:center;margin-bottom:8px}
 h1{font-size:1.55rem;font-weight:800;letter-spacing:-.4px}
 h2{font-size:1.05rem;font-weight:700;margin:0 0 12px;color:var(--text)}
 .last-update{display:inline-block;margin-top:10px;background:var(--surface);
@@ -34,7 +35,17 @@ button.action:disabled{opacity:.6;cursor:default}
   border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.72rem;
   color:var(--muted);font-family:monospace;max-height:140px;overflow-y:auto;text-align:right;direction:ltr}
 
-section{max-width:1200px;margin:30px auto 0}
+/* tabs */
+.tabs{display:flex;justify-content:center;gap:6px;margin:22px auto 0;flex-wrap:wrap;
+  max-width:900px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{background:none;border:none;border-bottom:2px solid transparent;color:var(--muted);
+  font-size:.92rem;font-weight:700;font-family:inherit;padding:10px 18px;cursor:pointer;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.panel{display:none}
+.panel.active{display:block}
+
+section{max-width:1200px;margin:26px auto 0}
 .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
 .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
 .card .top{display:flex;align-items:center;justify-content:space-between}
@@ -64,6 +75,11 @@ select{background:var(--surface2);color:var(--text);border:1px solid var(--borde
 details{margin-top:14px}
 summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding:6px 0}
 .no-data{text-align:center;padding:40px;color:var(--muted)}
+.placeholder{text-align:center;padding:70px 20px;color:var(--muted)}
+.placeholder .big{font-size:3rem;margin-bottom:12px}
+.offer-link{color:var(--accent);text-decoration:none}
+.offer-link:hover{text-decoration:underline}
+.pref-badge{background:var(--best);color:#000;border-radius:5px;padding:1px 6px;font-size:.66rem;font-weight:700;margin-inline-start:6px}
 footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;line-height:1.6}
 @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
 </style>
@@ -74,6 +90,17 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   <h1>🍕 מחירי פיצה – מעקב יומי</h1>
   <div class="last-update" id="lastUpdate">טוען…</div>
   <div class="banner" id="cfgBanner"></div>
+</header>
+
+<!-- Tab navigation -->
+<nav class="tabs" id="tabs">
+  <button class="tab active" data-tab="compare">השוואת רשתות</button>
+  <button class="tab" data-tab="paisplus">פייס פלוס</button>
+  <button class="tab" data-tab="wolt">וולט</button>
+</nav>
+
+<!-- ============ TAB: comparison (Domino's / Pizza Hut / Papa John's) ============ -->
+<div class="panel active" id="panel-compare">
   <div class="toolbar">
     <button class="action" id="runBtn" onclick="runScrape()" style="display:none">
       <span id="runIcon">↻</span><span id="runLabel">רענן עכשיו</span>
@@ -81,48 +108,65 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <button class="action" onclick="exportExcel()">⬇ ייצוא לאקסל</button>
   </div>
   <div id="runLog"></div>
-</header>
 
-<!-- Per-site status -->
-<section>
-  <h2>סטטוס אתרים</h2>
-  <div class="cards" id="statusCards"></div>
-</section>
+  <section>
+    <h2>סטטוס אתרים</h2>
+    <div class="cards" id="statusCards"></div>
+  </section>
 
-<!-- Current comparison -->
-<section>
-  <h2>השוואת מחירים עדכנית</h2>
-  <div class="tbl-wrap">
-    <table id="cmpTable"><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
-  </div>
-  <p style="font-size:.7rem;color:var(--muted);margin-top:8px">★ = המחיר הזול ביותר בשורה · כתובת ייחוס: תל אביב · המחיר הזול "תפוח מול תפוח" בכל קטגוריה</p>
-</section>
-
-<!-- History chart -->
-<section>
-  <h2>היסטוריית מחירים</h2>
-  <div class="controls">
-    <select id="prodSel"></select>
-    <select id="svcSel">
-      <option value="dlv">משלוח</option>
-      <option value="pu">איסוף עצמי</option>
-    </select>
-  </div>
-  <div class="chart-box"><canvas id="histChart"></canvas></div>
-</section>
-
-<!-- Raw daily table -->
-<section>
-  <details>
-    <summary>טבלת נתונים יומית מלאה</summary>
-    <div class="tbl-wrap" style="margin-top:12px">
-      <table id="rawTable"><thead></thead><tbody></tbody></table>
+  <section>
+    <h2>השוואת מחירים עדכנית</h2>
+    <div class="tbl-wrap">
+      <table id="cmpTable"><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-  </details>
-</section>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">★ = המחיר הזול ביותר בשורה · כתובת ייחוס: תל אביב · המחיר הזול "תפוח מול תפוח" בכל קטגוריה</p>
+  </section>
+
+  <section>
+    <h2>היסטוריית מחירים</h2>
+    <div class="controls">
+      <select id="prodSel"></select>
+      <select id="svcSel">
+        <option value="dlv">משלוח</option>
+        <option value="pu">איסוף עצמי</option>
+      </select>
+    </div>
+    <div class="chart-box"><canvas id="histChart"></canvas></div>
+  </section>
+
+  <section>
+    <details>
+      <summary>טבלת נתונים יומית מלאה</summary>
+      <div class="tbl-wrap" style="margin-top:12px">
+        <table id="rawTable"><thead></thead><tbody></tbody></table>
+      </div>
+    </details>
+  </section>
+</div>
+
+<!-- ============ TAB: Pais Plus (offers) ============ -->
+<div class="panel" id="panel-paisplus">
+  <section>
+    <h2>הצעות פיצה – פייס פלוס <span id="ppDate" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <div class="tbl-wrap">
+      <table id="ppTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+</div>
+
+<!-- ============ TAB: Wolt (placeholder) ============ -->
+<div class="panel" id="panel-wolt">
+  <section>
+    <div class="placeholder">
+      <div class="big">🛵</div>
+      <h2 style="color:var(--muted)">וולט — בקרוב</h2>
+      <p>הפרוצדורה הייעודית לוולט תיבנה בשלב נפרד.</p>
+    </div>
+  </section>
+</div>
 
 <footer>
-  מחירים נאספים אוטומטית מדי יום ב-14:00 (שעון ישראל) ע"י GitHub Actions ונשמרים ב-Firebase Firestore.<br>
+  מחירים נאספים אוטומטית מדי יום (14:00 לרשתות, 10:00 לפייס פלוס) ע"י GitHub Actions ונשמרים ב-Firebase Firestore.<br>
   לצורכי השוואה בלבד.
 </footer>
 
@@ -134,12 +178,12 @@ import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/fireba
 import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
+// Main comparison = the three menu chains only. Pais Plus and Wolt have their
+// own tabs with their own procedures.
 const SITES = [
-  { key:'dominos',   name:'דומינוס',    split:true  },
-  { key:'pizzahut',  name:'פיצה האט',   split:true  },
-  { key:'papajohns', name:"פאפא ג'ונס", split:true  },
-  { key:'paisplus',  name:'פייס פלוס',  split:false },
-  { key:'wolt',      name:'וולט',       split:false },
+  { key:'dominos',   name:'דומינוס',    split:true },
+  { key:'pizzahut',  name:'פיצה האט',   split:true },
+  { key:'papajohns', name:"פאפא ג'ונס", split:true },
 ];
 const PRODUCTS = [
   { key:'family',      label:'משפחתית' },
@@ -151,18 +195,15 @@ const color = k => getComputedStyle(document.documentElement).getPropertyValue('
 
 let history = [];      // [{date,timestamp,chains:{...}}]
 let statusDoc = null;  // meta/status
+let ppOffers = null;   // {date, offers:[]}
 let usingFallback = false;
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
-// price for a site+product+service, respecting split vs single-price sites
 function priceOf(entry, site, prodKey, svcKey){
   const c = entry.chains?.[site.key];
   if(!c) return null;
-  if(site.split){
-    return c[svcKey]?.[prodKey] ?? null;
-  }
-  // single-price site: value lives in dlv (fallback pu); show it in whichever col asked
+  if(site.split) return c[svcKey]?.[prodKey] ?? null;
   return (c.dlv?.[prodKey] ?? c.pu?.[prodKey] ?? null);
 }
 
@@ -176,162 +217,174 @@ function isConfigured(){
 let _db = null;
 function getDb(){
   if(_db) return _db;
-  const app = initializeApp(window.FIREBASE_CONFIG);  // once per page
-  _db = getFirestore(app);
+  _db = getFirestore(initializeApp(window.FIREBASE_CONFIG));  // once per page
   return _db;
 }
+
 async function loadFromFirestore(){
   const db = getDb();
   const snap = await getDocs(query(collection(db,'price_history'), orderBy('date')));
   const hist = snap.docs.map(d=>d.data());
   let status=null;
   try{ const s=await getDoc(doc(db,'meta','status')); if(s.exists()) status=s.data(); }catch(e){}
-  return { hist, status };
+  // Pais Plus offers (latest date)
+  let pp=null;
+  try{
+    const ps=await getDocs(query(collection(db,'paisplus_offers'), orderBy('date')));
+    if(ps.docs.length){ pp = ps.docs[ps.docs.length-1].data(); }
+  }catch(e){}
+  return { hist, status, pp };
 }
 
 async function loadFallback(){
+  const out={hist:[],status:null,pp:null};
   for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
-    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok) return await r.json(); }catch(e){}
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hist=await r.json(); break; } }catch(e){}
   }
-  return [];
+  for(const u of ['data/paisplus/offers.json','../data/paisplus/offers.json','/data/paisplus/offers.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.pp=groupLatestOffers(await r.json()); break; } }catch(e){}
+  }
+  return out;
+}
+
+// offers.json is a flat array across all dates → keep only the latest date
+function groupLatestOffers(arr){
+  if(!Array.isArray(arr)||!arr.length) return null;
+  const latest = arr.reduce((m,o)=>o.date>m?o.date:m, arr[0].date);
+  return { date: latest, offers: arr.filter(o=>o.date===latest) };
 }
 
 async function loadData(){
   if(isConfigured()){
     try{
-      const {hist,status} = await loadFromFirestore();
+      let {hist,status,pp} = await loadFromFirestore();
       usingFallback=false;
-      return {hist,status};
-    }catch(e){
-      console.error('Firestore load failed, falling back to local JSON:', e);
-    }
+      // If Firestore has no Pais Plus yet, try local fallback for that piece.
+      if(!pp){ const fb=await loadFallback(); pp=fb.pp; }
+      return {hist,status,pp};
+    }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
-  return { hist: await loadFallback(), status:null };
+  const fb=await loadFallback();
+  return { hist:fb.hist, status:fb.status, pp:fb.pp };
 }
 
-// ---- render: status cards ----------------------------------------------------
+// ---- status cards ------------------------------------------------------------
+function hasAnyPrice(c){ return ['pu','dlv'].some(sv=>c[sv]&&Object.values(c[sv]).some(v=>v!=null)); }
 function renderStatus(){
-  const wrap = document.getElementById('statusCards');
-  const last = history[history.length-1];
-  wrap.innerHTML = SITES.map(s=>{
-    const st = statusDoc?.sites?.[s.key];
-    let ok=null, lastSuccess=null, err=null;
+  const wrap=document.getElementById('statusCards');
+  const last=history[history.length-1];
+  wrap.innerHTML=SITES.map(s=>{
+    const st=statusDoc?.sites?.[s.key];
+    let ok=null,lastSuccess=null,err=null;
     if(st){ ok=st.ok; lastSuccess=st.last_success; err=st.error; }
-    else if(last){
-      const c=last.chains?.[s.key];
-      if(c){ ok = !c.error && hasAnyPrice(c); err=c.error;
-             if(ok) lastSuccess=last.timestamp||last.date; }
-    }
-    const cls = ok===true?'ok':ok===false?'fail':'none';
-    const label = ok===true?'תקין':ok===false?'כשל':'אין נתונים';
-    return `<div class="card">
-      <div class="top"><span class="site" style="color:${color(s.key)}">${s.name}</span>
-        <span class="dot ${cls}" title="${label}"></span></div>
+    else if(last){ const c=last.chains?.[s.key];
+      if(c){ ok=!c.error&&hasAnyPrice(c); err=c.error; if(ok) lastSuccess=last.timestamp||last.date; } }
+    const cls=ok===true?'ok':ok===false?'fail':'none';
+    const label=ok===true?'תקין':ok===false?'כשל':'אין נתונים';
+    return `<div class="card"><div class="top">
+      <span class="site" style="color:${color(s.key)}">${s.name}</span>
+      <span class="dot ${cls}" title="${label}"></span></div>
       <div class="meta">${label}${lastSuccess?` · הצלחה אחרונה:<br><b style="color:var(--text)">${lastSuccess}</b>`:''}</div>
-      ${err?`<div class="err">⚠ ${err}</div>`:''}
-    </div>`;
+      ${err?`<div class="err">⚠ ${err}</div>`:''}</div>`;
   }).join('');
 }
-function hasAnyPrice(c){
-  return ['pu','dlv'].some(sv => c[sv] && Object.values(c[sv]).some(v=>v!=null));
-}
 
-// ---- render: comparison table ------------------------------------------------
+// ---- comparison table --------------------------------------------------------
 function renderComparison(){
-  const t = document.getElementById('cmpTable');
-  const last = history[history.length-1];
+  const t=document.getElementById('cmpTable');
+  const last=history[history.length-1];
   if(!last){ t.innerHTML='<tbody><tr><td class="no-data">אין נתונים עדיין</td></tr></tbody>'; return; }
-
-  const head = `<thead><tr><th class="rowhead">מוצר</th>${
-    SITES.map(s=>`<th style="color:${color(s.key)}">${s.name}<span class="site-pill" style="background:${color(s.key)}"></span></th>`).join('')
-  }</tr></thead>`;
-
+  const head=`<thead><tr><th class="rowhead">מוצר</th>${
+    SITES.map(s=>`<th style="color:${color(s.key)}">${s.name}<span class="site-pill" style="background:${color(s.key)}"></span></th>`).join('')}</tr></thead>`;
   const rows=[];
   for(const p of PRODUCTS){
     for(const sv of SVCS){
-      // gather values for this row to find the cheapest
-      const vals = SITES.map(s=>{
-        // single-price sites only populate the delivery row (avoid double-count)
-        if(!s.split && sv.key==='pu') return null;
-        return priceOf(last, s, p.key, sv.key);
-      });
-      const present = vals.filter(v=>v!=null);
-      const best = present.length ? Math.min(...present) : null;
-      const cells = vals.map(v=>{
+      const vals=SITES.map(s=> s.split||sv.key!=='pu' ? priceOf(last,s,p.key,sv.key) : null);
+      const present=vals.filter(v=>v!=null);
+      const best=present.length?Math.min(...present):null;
+      const cells=vals.map(v=>{
         if(v==null) return `<td class="price">—</td>`;
-        const isBest = best!=null && Math.abs(v-best)<1e-9;
+        const isBest=best!=null&&Math.abs(v-best)<1e-9;
         return `<td class="price ${isBest?'best':''}">${fmt(v)}</td>`;
       }).join('');
       rows.push(`<tr><td class="rowhead">${p.label} <span class="svc">${sv.label}</span></td>${cells}</tr>`);
     }
   }
-  t.innerHTML = head + `<tbody>${rows.join('')}</tbody>`;
+  t.innerHTML=head+`<tbody>${rows.join('')}</tbody>`;
 }
 
-// ---- render: history chart ---------------------------------------------------
+// ---- history chart -----------------------------------------------------------
 let chart=null;
 function renderChart(){
-  const prodKey = document.getElementById('prodSel').value;
-  const svcKey  = document.getElementById('svcSel').value;
-  const labels = history.map(e=>e.date);
-  const datasets = SITES.map(s=>({
-    label: s.name,
-    data: history.map(e=>priceOf(e,s,prodKey,svcKey)),
-    borderColor: color(s.key),
-    backgroundColor: color(s.key),
+  const prodKey=document.getElementById('prodSel').value;
+  const svcKey=document.getElementById('svcSel').value;
+  const labels=history.map(e=>e.date);
+  const datasets=SITES.map(s=>({
+    label:s.name, data:history.map(e=>priceOf(e,s,prodKey,svcKey)),
+    borderColor:color(s.key), backgroundColor:color(s.key),
     spanGaps:true, tension:.25, pointRadius:3, borderWidth:2,
   }));
-  const ctx = document.getElementById('histChart');
+  const ctx=document.getElementById('histChart');
   if(chart) chart.destroy();
-  chart = new Chart(ctx,{
-    type:'line',
-    data:{labels,datasets},
-    options:{
-      responsive:true, maintainAspectRatio:false, animation:false,
-      plugins:{ legend:{labels:{color:'#e6edf3',boxWidth:14}},
-        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?'₪'+c.parsed.y:'—'}`}} },
-      scales:{
-        x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},
-        y:{ticks:{color:'#8b949e',callback:v=>'₪'+v},grid:{color:'#21262d'}}
-      }
-    }
-  });
+  chart=new Chart(ctx,{type:'line',data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:false,animation:false,
+    plugins:{legend:{labels:{color:'#e6edf3',boxWidth:14}},
+      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?'₪'+c.parsed.y:'—'}`}}},
+    scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},
+      y:{ticks:{color:'#8b949e',callback:v=>'₪'+v},grid:{color:'#21262d'}}}
+  }});
 }
 
-// ---- render: raw daily table -------------------------------------------------
-const RAW_COLS = [];
+// ---- raw daily table ---------------------------------------------------------
+const RAW_COLS=[];
 SITES.forEach(s=>{
-  const svcs = s.split ? SVCS : [{key:'dlv',label:''}];
-  PRODUCTS.forEach(p=> svcs.forEach(sv=>
-    RAW_COLS.push({site:s,prod:p,svc:sv,
-      label:`${p.label}${sv.label?' '+sv.label:''}`})));
-  if(s.split) RAW_COLS.push({site:s,branches:true,label:'סניפים'});
+  PRODUCTS.forEach(p=>SVCS.forEach(sv=>RAW_COLS.push({site:s,prod:p,svc:sv,label:`${p.label} ${sv.label}`})));
+  RAW_COLS.push({site:s,branches:true,label:'סניפים'});
 });
 function renderRaw(){
   const thead=document.querySelector('#rawTable thead');
   const tbody=document.querySelector('#rawTable tbody');
-  const perSite={}; SITES.forEach(s=>perSite[s.key]=0);
-  RAW_COLS.forEach(c=>perSite[c.site.key]++);
-  const h1=`<tr><th class="rowhead" rowspan="2">תאריך</th>${
-    SITES.map(s=>`<th colspan="${perSite[s.key]}" style="color:${color(s.key)}">${s.name}</th>`).join('')}</tr>`;
-  const h2=`<tr>${RAW_COLS.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
-  thead.innerHTML=h1+h2;
+  const per={}; SITES.forEach(s=>per[s.key]=0); RAW_COLS.forEach(c=>per[c.site.key]++);
+  thead.innerHTML=`<tr><th class="rowhead" rowspan="2">תאריך</th>${
+    SITES.map(s=>`<th colspan="${per[s.key]}" style="color:${color(s.key)}">${s.name}</th>`).join('')}</tr>`+
+    `<tr>${RAW_COLS.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
   if(!history.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${1+RAW_COLS.length}">אין נתונים</td></tr>`; return; }
   tbody.innerHTML=[...history].reverse().map(e=>{
     const cells=RAW_COLS.map(c=>{
       if(c.branches){ const n=e.chains?.[c.site.key]?.branch_count; return `<td>${n!=null?n:'—'}</td>`; }
-      const v=priceOf(e,c.site,c.prod.key,c.svc.key);
-      return `<td class="price">${fmt(v)}</td>`;
+      return `<td class="price">${fmt(priceOf(e,c.site,c.prod.key,c.svc.key))}</td>`;
     }).join('');
     return `<tr><td class="rowhead">${e.date}</td>${cells}</tr>`;
   }).join('');
 }
 
-// ---- excel export ------------------------------------------------------------
-window.exportExcel = function(){
+// ---- Pais Plus offers tab ----------------------------------------------------
+function renderPaisplus(){
+  const thead=document.querySelector('#ppTable thead');
+  const tbody=document.querySelector('#ppTable tbody');
+  document.getElementById('ppDate').textContent = ppOffers?.date ? `· נכון ל-${ppOffers.date}` : '';
+  const cols=['חברה','הצעה','קטגוריה','מחיר','קישור'];
+  thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const offers=(ppOffers?.offers||[]).slice().sort((a,b)=>(a.price_value??1e9)-(b.price_value??1e9));
+  if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין נתונים עדיין</td></tr>`; return; }
+  tbody.innerHTML=offers.map(o=>{
+    const pref=o.is_preferred?`<span class="pref-badge">מועדפת</span>`:'';
+    const price=o.price_text || (o.price_value!=null?fmt(o.price_value):'—');
+    const link=o.product_url?`<a class="offer-link" href="${o.product_url}" target="_blank" rel="noopener">לצפייה</a>`:'—';
+    return `<tr>
+      <td class="rowhead">${o.company||'—'}${pref}</td>
+      <td class="rowhead" style="font-weight:400">${o.offer_text||o.full_text||'—'}</td>
+      <td>${o.category||'—'}</td>
+      <td class="price">${price}</td>
+      <td>${link}</td></tr>`;
+  }).join('');
+}
+
+// ---- excel export (comparison) ----------------------------------------------
+window.exportExcel=function(){
   if(!history.length){ alert('אין נתונים לייצוא'); return; }
-  const h1=['תאריך'], h2=[''];
+  const h1=['תאריך'],h2=[''];
   RAW_COLS.forEach(c=>{ h1.push(c.site.name); h2.push(c.branches?'סניפים':c.label); });
   const rows=[h1,h2];
   [...history].reverse().forEach(e=>{
@@ -342,42 +395,34 @@ window.exportExcel = function(){
     });
     rows.push(row);
   });
-  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+  const wb=XLSX.utils.book_new(),ws=XLSX.utils.aoa_to_sheet(rows);
   ws['!cols']=rows[0].map((_,i)=>({wch:i===0?12:16}));
   XLSX.utils.book_append_sheet(wb,ws,'מחירי פיצה');
   XLSX.writeFile(wb,`pizza_prices_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
 // ---- manual refresh ----------------------------------------------------------
-window.runScrape = async function(){
-  const endpoint = window.REFRESH_ENDPOINT;
-  if(!endpoint) return;
-  const btn=document.getElementById('runBtn'), icon=document.getElementById('runIcon'),
-        label=document.getElementById('runLabel'), log=document.getElementById('runLog');
+window.runScrape=async function(){
+  const endpoint=window.REFRESH_ENDPOINT; if(!endpoint) return;
+  const btn=document.getElementById('runBtn'),icon=document.getElementById('runIcon'),
+        label=document.getElementById('runLabel'),log=document.getElementById('runLog');
   btn.disabled=true; icon.style.animation='spin 1s linear infinite';
-  label.textContent='רץ…'; log.style.display='block';
-  log.textContent='מפעיל סריקה ב-GitHub Actions…';
-  const prevTs = history.length ? history[history.length-1].timestamp : null;
+  label.textContent='רץ…'; log.style.display='block'; log.textContent='מפעיל סריקה ב-GitHub Actions…';
+  const prevTs=history.length?history[history.length-1].timestamp:null;
   try{
     const r=await fetch(endpoint,{method:'POST'});
     const body=await r.json().catch(()=>({}));
-    if(!r.ok || body.ok===false){
-      log.textContent='שגיאה בהפעלת העדכון: '+(body.error||r.status);
-      return finishRefresh(false);
-    }
+    if(!r.ok||body.ok===false){ log.textContent='שגיאה בהפעלת העדכון: '+(body.error||r.status); return finishRefresh(false); }
     log.textContent='העדכון התחיל… זה עשוי להימשך 2–4 דקות.';
     for(let i=0;i<24;i++){
       await new Promise(res=>setTimeout(res,15000));
       log.textContent=`בודק אם העדכון הסתיים… (${i+1}/24)`;
-      const {hist,status}=await loadData();
+      const {hist,status,pp}=await loadData();
       const fresh=hist[hist.length-1];
-      if(fresh && fresh.timestamp!==prevTs){
-        history=hist; statusDoc=status; renderAll();
-        log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true);
-      }
+      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppOffers=pp;renderAll();
+        log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true); }
     }
-    log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.';
-    finishRefresh(false);
+    log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.'; finishRefresh(false);
   }catch(e){ log.textContent='שגיאה: '+e.message; finishRefresh(false); }
 };
 function finishRefresh(ok){
@@ -386,31 +431,39 @@ function finishRefresh(ok){
   setTimeout(()=>{icon.textContent='↻';label.textContent='רענן עכשיו';},4000);
 }
 
+// ---- tabs --------------------------------------------------------------------
+function initTabs(){
+  document.querySelectorAll('.tab').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('panel-'+btn.dataset.tab).classList.add('active');
+    });
+  });
+}
+
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); }
+function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); }
 
 async function init(){
-  // product selector
-  document.getElementById('prodSel').innerHTML =
-    PRODUCTS.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');
+  initTabs();
+  document.getElementById('prodSel').innerHTML=PRODUCTS.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');
   document.getElementById('prodSel').addEventListener('change',renderChart);
   document.getElementById('svcSel').addEventListener('change',renderChart);
 
-  const {hist,status}=await loadData();
-  history=hist; statusDoc=status;
+  const {hist,status,pp}=await loadData();
+  history=hist; statusDoc=status; ppOffers=pp;
 
   const last=history[history.length-1];
-  document.getElementById('lastUpdate').innerHTML =
-    last ? `עדכון אחרון: <b>${last.timestamp||last.date}</b>` : 'אין נתונים עדיין';
+  document.getElementById('lastUpdate').innerHTML=
+    last?`עדכון אחרון: <b>${last.timestamp||last.date}</b>`:'אין נתונים עדיין';
 
   if(!isConfigured()){
     const b=document.getElementById('cfgBanner'); b.style.display='block';
-    b.innerHTML = usingFallback && history.length
-      ? 'מצב תצוגה מקומי (JSON). כדי לקרוא מ-Firebase, מלאו את הפרטים בקובץ <code>public/firebase-config.js</code>.'
-      : 'Firebase עדיין לא הוגדר. מלאו את <code>public/firebase-config.js</code> עם פרטי הפרויקט מ-Firebase Console.';
+    b.innerHTML='Firebase לא הוגדר. מלאו את <code>public/firebase-config.js</code>.';
   }
   if(window.REFRESH_ENDPOINT) document.getElementById('runBtn').style.display='inline-flex';
-
   renderAll();
 }
 window.addEventListener('load',init);
