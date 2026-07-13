@@ -232,17 +232,17 @@
   },
   {
     "date": "2026-07-13",
-    "timestamp": "2026-07-13 16:00:02",
+    "timestamp": "2026-07-13 16:39:13",
     "chains": {
       "pizzahut": {
         "pu": {
           "family": 22.5,
-          "meal_single": 29.0,
+          "meal_single": 35.0,
           "meal_double": 88.0
         },
         "dlv": {
           "family": 22.5,
-          "meal_single": 29.0,
+          "meal_single": 35.0,
           "meal_double": 88.0
         },
         "error": null,
@@ -251,12 +251,12 @@
       "dominos": {
         "pu": {
           "family": 58.3,
-          "meal_single": 36.0,
+          "meal_single": 68.0,
           "meal_double": 96.0
         },
         "dlv": {
           "family": 58.3,
-          "meal_single": 36.0,
+          "meal_single": 68.0,
           "meal_double": 96.0
         },
         "error": null,
