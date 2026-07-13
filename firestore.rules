@@ -1,0 +1,31 @@
+rules_version = '2';
+
+// Pizza Price Tracker — Firestore security rules.
+//
+// The dashboard is a public, read-only view of pizza prices, so anyone may
+// READ the price data. Nobody may WRITE from the client: all writes come from
+// the GitHub Actions scraper, which uses the Firebase Admin SDK and bypasses
+// these rules entirely (server-side service account).
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public, read-only collections consumed by the dashboard.
+    match /price_history/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /paisplus_offers/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /meta/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Everything else is denied by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

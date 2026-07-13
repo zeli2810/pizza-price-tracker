@@ -1,0 +1,45 @@
+name: Deploy dashboard to Firebase Hosting
+
+# Publishes the dashboard (public/) and the Firestore security rules whenever
+# the front-end or rules change. Daily price data does NOT need a redeploy —
+# the dashboard reads it live from Firestore.
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'public/**'
+      - 'firebase.json'
+      - 'firestore.rules'
+      - 'firestore.indexes.json'
+      - '.github/workflows/deploy_firebase.yml'
+  workflow_dispatch: {}
+
+concurrency:
+  group: firebase-deploy
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Write service-account key to a file
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          printf '%s' "$FIREBASE_SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          echo "GOOGLE_APPLICATION_CREDENTIALS=$RUNNER_TEMP/sa.json" >> "$GITHUB_ENV"
+
+      - name: Deploy hosting + Firestore rules
+        env:
+          FIREBASE_PROJECT: ${{ vars.FIREBASE_PROJECT_ID }}
+        run: |
+          npx -y firebase-tools@13 deploy \
+            --only hosting,firestore:rules \
+            --project "$FIREBASE_PROJECT" \
+            --non-interactive

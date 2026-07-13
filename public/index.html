@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מחירי פיצה – מעקב יומי</title>
+<style>
+:root{
+  --bg:#0d1117; --surface:#161b22; --surface2:#1c2128; --border:#30363d;
+  --text:#e6edf3; --muted:#8b949e; --good:#3fb950; --bad:#f85149; --best:#d29922;
+  --c-dominos:#0078AE; --c-pizzahut:#E31837; --c-papajohns:#006341;
+  --c-paisplus:#7c3aed; --c-wolt:#00b8d4;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;
+  min-height:100vh;padding:24px 14px 60px}
+header{text-align:center;margin-bottom:18px}
+h1{font-size:1.55rem;font-weight:800;letter-spacing:-.4px}
+h2{font-size:1.05rem;font-weight:700;margin:0 0 12px;color:var(--text)}
+.last-update{display:inline-block;margin-top:10px;background:var(--surface);
+  border:1px solid var(--border);border-radius:20px;padding:4px 16px;font-size:.78rem;color:var(--muted)}
+.last-update b{color:var(--text)}
+.banner{max-width:760px;margin:14px auto 0;background:#3d2b0a;border:1px solid #7d5a12;
+  color:#f0d68a;border-radius:10px;padding:10px 14px;font-size:.82rem;line-height:1.5;display:none}
+.banner code{background:#00000040;padding:1px 5px;border-radius:4px}
+
+.toolbar{display:flex;justify-content:center;gap:10px;margin-top:14px;flex-wrap:wrap}
+button.action{background:var(--surface2);border:1px solid var(--border);border-radius:20px;
+  color:var(--text);font-size:.82rem;font-weight:600;padding:6px 18px;cursor:pointer;
+  transition:all .15s;display:inline-flex;align-items:center;gap:7px}
+button.action:hover{background:var(--border)}
+button.action:disabled{opacity:.6;cursor:default}
+#runLog{display:none;margin:10px auto 0;max-width:640px;background:var(--surface);
+  border:1px solid var(--border);border-radius:10px;padding:10px 14px;font-size:.72rem;
+  color:var(--muted);font-family:monospace;max-height:140px;overflow-y:auto;text-align:right;direction:ltr}
+
+section{max-width:1200px;margin:30px auto 0}
+.cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px}
+.card .top{display:flex;align-items:center;justify-content:space-between}
+.card .site{font-weight:700;font-size:.95rem}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.dot.ok{background:var(--good)} .dot.fail{background:var(--bad)} .dot.none{background:var(--muted)}
+.card .meta{margin-top:8px;font-size:.72rem;color:var(--muted);line-height:1.5}
+.card .err{color:var(--bad);font-size:.7rem;margin-top:4px;word-break:break-word}
+
+.tbl-wrap{border:1px solid var(--border);border-radius:12px;overflow:auto}
+table{width:100%;border-collapse:collapse;font-size:.82rem}
+thead{background:var(--surface2)}
+th,td{padding:10px 12px;text-align:center;white-space:nowrap;border-top:1px solid var(--border)}
+th{font-size:.72rem;font-weight:700;color:var(--muted);letter-spacing:.3px}
+.rowhead{text-align:right;color:var(--text);font-weight:600}
+.svc{font-size:.68rem;color:var(--muted);font-weight:400}
+td.price{font-variant-numeric:tabular-nums}
+td.best{color:var(--best);font-weight:800}
+td.best::after{content:" ★";font-size:.7rem}
+.site-pill{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-start:6px;vertical-align:middle}
+
+.controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+select{background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;font-size:.82rem;font-family:inherit}
+.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;height:380px}
+
+details{margin-top:14px}
+summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding:6px 0}
+.no-data{text-align:center;padding:40px;color:var(--muted)}
+footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;line-height:1.6}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>🍕 מחירי פיצה – מעקב יומי</h1>
+  <div class="last-update" id="lastUpdate">טוען…</div>
+  <div class="banner" id="cfgBanner"></div>
+  <div class="toolbar">
+    <button class="action" id="runBtn" onclick="runScrape()" style="display:none">
+      <span id="runIcon">↻</span><span id="runLabel">רענן עכשיו</span>
+    </button>
+    <button class="action" onclick="exportExcel()">⬇ ייצוא לאקסל</button>
+  </div>
+  <div id="runLog"></div>
+</header>
+
+<!-- Per-site status -->
+<section>
+  <h2>סטטוס אתרים</h2>
+  <div class="cards" id="statusCards"></div>
+</section>
+
+<!-- Current comparison -->
+<section>
+  <h2>השוואת מחירים עדכנית</h2>
+  <div class="tbl-wrap">
+    <table id="cmpTable"><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+  </div>
+  <p style="font-size:.7rem;color:var(--muted);margin-top:8px">★ = המחיר הזול ביותר בשורה · כתובת ייחוס: תל אביב · המחיר הזול "תפוח מול תפוח" בכל קטגוריה</p>
+</section>
+
+<!-- History chart -->
+<section>
+  <h2>היסטוריית מחירים</h2>
+  <div class="controls">
+    <select id="prodSel"></select>
+    <select id="svcSel">
+      <option value="dlv">משלוח</option>
+      <option value="pu">איסוף עצמי</option>
+    </select>
+  </div>
+  <div class="chart-box"><canvas id="histChart"></canvas></div>
+</section>
+
+<!-- Raw daily table -->
+<section>
+  <details>
+    <summary>טבלת נתונים יומית מלאה</summary>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table id="rawTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </details>
+</section>
+
+<footer>
+  מחירים נאספים אוטומטית מדי יום ב-14:00 (שעון ישראל) ע"י GitHub Actions ונשמרים ב-Firebase Firestore.<br>
+  לצורכי השוואה בלבד.
+</footer>
+
+<script src="firebase-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script type="module">
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy }
+  from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+const SITES = [
+  { key:'dominos',   name:'דומינוס',    split:true  },
+  { key:'pizzahut',  name:'פיצה האט',   split:true  },
+  { key:'papajohns', name:"פאפא ג'ונס", split:true  },
+  { key:'paisplus',  name:'פייס פלוס',  split:false },
+  { key:'wolt',      name:'וולט',       split:false },
+];
+const PRODUCTS = [
+  { key:'family',      label:'משפחתית' },
+  { key:'meal_single', label:'ארוחת פיצה אחת' },
+  { key:'meal_double', label:'ארוחת שתי פיצות' },
+];
+const SVCS = [ {key:'pu',label:'איסוף'}, {key:'dlv',label:'משלוח'} ];
+const color = k => getComputedStyle(document.documentElement).getPropertyValue('--c-'+k).trim() || '#888';
+
+let history = [];      // [{date,timestamp,chains:{...}}]
+let statusDoc = null;  // meta/status
+let usingFallback = false;
+
+const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
+
+// price for a site+product+service, respecting split vs single-price sites
+function priceOf(entry, site, prodKey, svcKey){
+  const c = entry.chains?.[site.key];
+  if(!c) return null;
+  if(site.split){
+    return c[svcKey]?.[prodKey] ?? null;
+  }
+  // single-price site: value lives in dlv (fallback pu); show it in whichever col asked
+  return (c.dlv?.[prodKey] ?? c.pu?.[prodKey] ?? null);
+}
+
+// ---- data loading ------------------------------------------------------------
+function isConfigured(){
+  const c = window.FIREBASE_CONFIG;
+  return c && c.projectId && !String(c.projectId).includes('PIZZA_TRAKER_PROJECT_ID')
+           && !String(c.apiKey).includes('REPLACE_WITH');
+}
+
+let _db = null;
+function getDb(){
+  if(_db) return _db;
+  const app = initializeApp(window.FIREBASE_CONFIG);  // once per page
+  _db = getFirestore(app);
+  return _db;
+}
+async function loadFromFirestore(){
+  const db = getDb();
+  const snap = await getDocs(query(collection(db,'price_history'), orderBy('date')));
+  const hist = snap.docs.map(d=>d.data());
+  let status=null;
+  try{ const s=await getDoc(doc(db,'meta','status')); if(s.exists()) status=s.data(); }catch(e){}
+  return { hist, status };
+}
+
+async function loadFallback(){
+  for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok) return await r.json(); }catch(e){}
+  }
+  return [];
+}
+
+async function loadData(){
+  if(isConfigured()){
+    try{
+      const {hist,status} = await loadFromFirestore();
+      usingFallback=false;
+      return {hist,status};
+    }catch(e){
+      console.error('Firestore load failed, falling back to local JSON:', e);
+    }
+  }
+  usingFallback=true;
+  return { hist: await loadFallback(), status:null };
+}
+
+// ---- render: status cards ----------------------------------------------------
+function renderStatus(){
+  const wrap = document.getElementById('statusCards');
+  const last = history[history.length-1];
+  wrap.innerHTML = SITES.map(s=>{
+    const st = statusDoc?.sites?.[s.key];
+    let ok=null, lastSuccess=null, err=null;
+    if(st){ ok=st.ok; lastSuccess=st.last_success; err=st.error; }
+    else if(last){
+      const c=last.chains?.[s.key];
+      if(c){ ok = !c.error && hasAnyPrice(c); err=c.error;
+             if(ok) lastSuccess=last.timestamp||last.date; }
+    }
+    const cls = ok===true?'ok':ok===false?'fail':'none';
+    const label = ok===true?'תקין':ok===false?'כשל':'אין נתונים';
+    return `<div class="card">
+      <div class="top"><span class="site" style="color:${color(s.key)}">${s.name}</span>
+        <span class="dot ${cls}" title="${label}"></span></div>
+      <div class="meta">${label}${lastSuccess?` · הצלחה אחרונה:<br><b style="color:var(--text)">${lastSuccess}</b>`:''}</div>
+      ${err?`<div class="err">⚠ ${err}</div>`:''}
+    </div>`;
+  }).join('');
+}
+function hasAnyPrice(c){
+  return ['pu','dlv'].some(sv => c[sv] && Object.values(c[sv]).some(v=>v!=null));
+}
+
+// ---- render: comparison table ------------------------------------------------
+function renderComparison(){
+  const t = document.getElementById('cmpTable');
+  const last = history[history.length-1];
+  if(!last){ t.innerHTML='<tbody><tr><td class="no-data">אין נתונים עדיין</td></tr></tbody>'; return; }
+
+  const head = `<thead><tr><th class="rowhead">מוצר</th>${
+    SITES.map(s=>`<th style="color:${color(s.key)}">${s.name}<span class="site-pill" style="background:${color(s.key)}"></span></th>`).join('')
+  }</tr></thead>`;
+
+  const rows=[];
+  for(const p of PRODUCTS){
+    for(const sv of SVCS){
+      // gather values for this row to find the cheapest
+      const vals = SITES.map(s=>{
+        // single-price sites only populate the delivery row (avoid double-count)
+        if(!s.split && sv.key==='pu') return null;
+        return priceOf(last, s, p.key, sv.key);
+      });
+      const present = vals.filter(v=>v!=null);
+      const best = present.length ? Math.min(...present) : null;
+      const cells = vals.map(v=>{
+        if(v==null) return `<td class="price">—</td>`;
+        const isBest = best!=null && Math.abs(v-best)<1e-9;
+        return `<td class="price ${isBest?'best':''}">${fmt(v)}</td>`;
+      }).join('');
+      rows.push(`<tr><td class="rowhead">${p.label} <span class="svc">${sv.label}</span></td>${cells}</tr>`);
+    }
+  }
+  t.innerHTML = head + `<tbody>${rows.join('')}</tbody>`;
+}
+
+// ---- render: history chart ---------------------------------------------------
+let chart=null;
+function renderChart(){
+  const prodKey = document.getElementById('prodSel').value;
+  const svcKey  = document.getElementById('svcSel').value;
+  const labels = history.map(e=>e.date);
+  const datasets = SITES.map(s=>({
+    label: s.name,
+    data: history.map(e=>priceOf(e,s,prodKey,svcKey)),
+    borderColor: color(s.key),
+    backgroundColor: color(s.key),
+    spanGaps:true, tension:.25, pointRadius:3, borderWidth:2,
+  }));
+  const ctx = document.getElementById('histChart');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx,{
+    type:'line',
+    data:{labels,datasets},
+    options:{
+      responsive:true, maintainAspectRatio:false, animation:false,
+      plugins:{ legend:{labels:{color:'#e6edf3',boxWidth:14}},
+        tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?'₪'+c.parsed.y:'—'}`}} },
+      scales:{
+        x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},
+        y:{ticks:{color:'#8b949e',callback:v=>'₪'+v},grid:{color:'#21262d'}}
+      }
+    }
+  });
+}
+
+// ---- render: raw daily table -------------------------------------------------
+const RAW_COLS = [];
+SITES.forEach(s=>{
+  const svcs = s.split ? SVCS : [{key:'dlv',label:''}];
+  PRODUCTS.forEach(p=> svcs.forEach(sv=>
+    RAW_COLS.push({site:s,prod:p,svc:sv,
+      label:`${p.label}${sv.label?' '+sv.label:''}`})));
+  if(s.split) RAW_COLS.push({site:s,branches:true,label:'סניפים'});
+});
+function renderRaw(){
+  const thead=document.querySelector('#rawTable thead');
+  const tbody=document.querySelector('#rawTable tbody');
+  const perSite={}; SITES.forEach(s=>perSite[s.key]=0);
+  RAW_COLS.forEach(c=>perSite[c.site.key]++);
+  const h1=`<tr><th class="rowhead" rowspan="2">תאריך</th>${
+    SITES.map(s=>`<th colspan="${perSite[s.key]}" style="color:${color(s.key)}">${s.name}</th>`).join('')}</tr>`;
+  const h2=`<tr>${RAW_COLS.map(c=>`<th>${c.label}</th>`).join('')}</tr>`;
+  thead.innerHTML=h1+h2;
+  if(!history.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${1+RAW_COLS.length}">אין נתונים</td></tr>`; return; }
+  tbody.innerHTML=[...history].reverse().map(e=>{
+    const cells=RAW_COLS.map(c=>{
+      if(c.branches){ const n=e.chains?.[c.site.key]?.branch_count; return `<td>${n!=null?n:'—'}</td>`; }
+      const v=priceOf(e,c.site,c.prod.key,c.svc.key);
+      return `<td class="price">${fmt(v)}</td>`;
+    }).join('');
+    return `<tr><td class="rowhead">${e.date}</td>${cells}</tr>`;
+  }).join('');
+}
+
+// ---- excel export ------------------------------------------------------------
+window.exportExcel = function(){
+  if(!history.length){ alert('אין נתונים לייצוא'); return; }
+  const h1=['תאריך'], h2=[''];
+  RAW_COLS.forEach(c=>{ h1.push(c.site.name); h2.push(c.branches?'סניפים':c.label); });
+  const rows=[h1,h2];
+  [...history].reverse().forEach(e=>{
+    const row=[e.date];
+    RAW_COLS.forEach(c=>{
+      if(c.branches){ row.push(e.chains?.[c.site.key]?.branch_count ?? ''); return; }
+      const v=priceOf(e,c.site,c.prod.key,c.svc.key); row.push(v!=null?Number(v):'');
+    });
+    rows.push(row);
+  });
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=rows[0].map((_,i)=>({wch:i===0?12:16}));
+  XLSX.utils.book_append_sheet(wb,ws,'מחירי פיצה');
+  XLSX.writeFile(wb,`pizza_prices_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
+// ---- manual refresh ----------------------------------------------------------
+window.runScrape = async function(){
+  const endpoint = window.REFRESH_ENDPOINT;
+  if(!endpoint) return;
+  const btn=document.getElementById('runBtn'), icon=document.getElementById('runIcon'),
+        label=document.getElementById('runLabel'), log=document.getElementById('runLog');
+  btn.disabled=true; icon.style.animation='spin 1s linear infinite';
+  label.textContent='רץ…'; log.style.display='block';
+  log.textContent='מפעיל סריקה ב-GitHub Actions…';
+  const prevTs = history.length ? history[history.length-1].timestamp : null;
+  try{
+    const r=await fetch(endpoint,{method:'POST'});
+    const body=await r.json().catch(()=>({}));
+    if(!r.ok || body.ok===false){
+      log.textContent='שגיאה בהפעלת העדכון: '+(body.error||r.status);
+      return finishRefresh(false);
+    }
+    log.textContent='העדכון התחיל… זה עשוי להימשך 2–4 דקות.';
+    for(let i=0;i<24;i++){
+      await new Promise(res=>setTimeout(res,15000));
+      log.textContent=`בודק אם העדכון הסתיים… (${i+1}/24)`;
+      const {hist,status}=await loadData();
+      const fresh=hist[hist.length-1];
+      if(fresh && fresh.timestamp!==prevTs){
+        history=hist; statusDoc=status; renderAll();
+        log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true);
+      }
+    }
+    log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.';
+    finishRefresh(false);
+  }catch(e){ log.textContent='שגיאה: '+e.message; finishRefresh(false); }
+};
+function finishRefresh(ok){
+  const btn=document.getElementById('runBtn'),icon=document.getElementById('runIcon'),label=document.getElementById('runLabel');
+  icon.style.animation=''; icon.textContent=ok?'✓':'✗'; label.textContent=ok?'עודכן!':'שגיאה'; btn.disabled=false;
+  setTimeout(()=>{icon.textContent='↻';label.textContent='רענן עכשיו';},4000);
+}
+
+// ---- init --------------------------------------------------------------------
+function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); }
+
+async function init(){
+  // product selector
+  document.getElementById('prodSel').innerHTML =
+    PRODUCTS.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');
+  document.getElementById('prodSel').addEventListener('change',renderChart);
+  document.getElementById('svcSel').addEventListener('change',renderChart);
+
+  const {hist,status}=await loadData();
+  history=hist; statusDoc=status;
+
+  const last=history[history.length-1];
+  document.getElementById('lastUpdate').innerHTML =
+    last ? `עדכון אחרון: <b>${last.timestamp||last.date}</b>` : 'אין נתונים עדיין';
+
+  if(!isConfigured()){
+    const b=document.getElementById('cfgBanner'); b.style.display='block';
+    b.innerHTML = usingFallback && history.length
+      ? 'מצב תצוגה מקומי (JSON). כדי לקרוא מ-Firebase, מלאו את הפרטים בקובץ <code>public/firebase-config.js</code>.'
+      : 'Firebase עדיין לא הוגדר. מלאו את <code>public/firebase-config.js</code> עם פרטי הפרויקט מ-Firebase Console.';
+  }
+  if(window.REFRESH_ENDPOINT) document.getElementById('runBtn').style.display='inline-flex';
+
+  renderAll();
+}
+window.addEventListener('load',init);
+</script>
+</body>
+</html>

@@ -3,3 +3,10 @@ __pycache__/
 .venv/
 node_modules/
 data/paisplus/scrape_log.txt
+
+# Firebase service-account keys — NEVER commit these
+serviceAccount*.json
+*firebase-adminsdk*.json
+*-service-account.json
+.firebase/
+firebase-debug.log

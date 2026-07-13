@@ -14,9 +14,19 @@ on:
 permissions:
   contents: write
 
+# Only one scrape at a time — prevents parallel manual + scheduled runs.
+concurrency:
+  group: pizza-scrape
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-latest
+    env:
+      # Service-account JSON for writing to Firestore (repo secret).
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+      # Which Wolt venue to track (repo variable). Empty = skip Wolt.
+      WOLT_VENUE_URL: ${{ vars.WOLT_VENUE_URL }}
     steps:
       - name: Check it's actually 14:00 Israel time
         if: github.event_name == 'schedule'

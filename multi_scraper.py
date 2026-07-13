@@ -12,7 +12,7 @@ Chains:
   papajohns -> papajohns.co.il/shop/  (WooCommerce, Playwright + stealth)
 """
 
-import json, re, sys, io, time
+import json, re, sys, io, time, os
 import requests
 from pathlib import Path
 from datetime import datetime
@@ -978,7 +978,18 @@ def run_scrape(verbose=True):
         entry["chains"]["papajohns"] = pj
         if verbose: _log(pj, "פאפא ג'ונס")
 
-    # Save
+        # Wolt — one configurable venue (only runs if WOLT_VENUE_URL is set)
+        if os.environ.get("WOLT_VENUE_URL", "").strip():
+            if verbose: print("  וולט (Playwright)...")
+            try:
+                import wolt_scraper
+                wolt = wolt_scraper.scrape_wolt(pw, verbose=verbose)
+            except Exception as e:
+                wolt = {"pu": _empty_prices(), "dlv": _empty_prices(), "error": str(e)[:120]}
+            entry["chains"]["wolt"] = wolt
+            if verbose: _log(wolt, "וולט")
+
+    # Save locally (JSON mirror / backup + local dev)
     history = load_history()
     history = [h for h in history if h.get("date") != today]
     history.append(entry)
@@ -987,6 +998,17 @@ def run_scrape(verbose=True):
 
     if verbose:
         print(f"\n  Saved → {DATA_FILE}")
+
+    # Push to Firestore (no-op if credentials aren't configured)
+    try:
+        import firestore_sync
+        if firestore_sync.push_entry(entry) and verbose:
+            print("  Synced → Firestore ✓")
+    except Exception as e:
+        if verbose:
+            print(f"  Firestore sync skipped: {e}")
+
+    if verbose:
         print("Done.")
 
     return entry

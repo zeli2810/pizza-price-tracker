@@ -297,6 +297,21 @@ def run_scrape(verbose=True):
 
     if verbose:
         print(f"\n  נשמרו {len(offers)} הצעות → {DATA_FILE}")
+
+    # Push to Firestore (no-op if credentials aren't configured)
+    try:
+        import firestore_sync
+        firestore_sync.push_paisplus_offers(offers, date=today)
+        firestore_sync.mark_site_status(
+            "paisplus", ok=True,
+            timestamp=offers[0].get("timestamp") if offers else today)
+        if verbose and firestore_sync.is_enabled():
+            print("  Synced Pais Plus → Firestore ✓")
+    except Exception as e:
+        if verbose:
+            print(f"  Firestore sync skipped: {e}")
+
+    if verbose:
         print("Done.")
 
     return offers

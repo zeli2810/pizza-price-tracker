@@ -13,6 +13,13 @@
       "runtimeArgs": ["-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8767",
         "--app-dir", "C:\\_מישהו לחשוב איתו_\\הורדות\\ai\\pizza_tracker"],
       "port": 8767
+    },
+    {
+      "name": "pizza-server",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["server.py"],
+      "cwd": "C:\\_מישהו לחשוב איתו_\\הורדות\\ai\\pizza_tracker",
+      "port": 8765
     }
   ]
 }
