@@ -229,5 +229,53 @@
         "branch_count": 43
       }
     }
+  },
+  {
+    "date": "2026-07-13",
+    "timestamp": "2026-07-13 16:00:02",
+    "chains": {
+      "pizzahut": {
+        "pu": {
+          "family": 22.5,
+          "meal_single": 29.0,
+          "meal_double": 88.0
+        },
+        "dlv": {
+          "family": 22.5,
+          "meal_single": 29.0,
+          "meal_double": 88.0
+        },
+        "error": null,
+        "branch_count": 104
+      },
+      "dominos": {
+        "pu": {
+          "family": 58.3,
+          "meal_single": 36.0,
+          "meal_double": 96.0
+        },
+        "dlv": {
+          "family": 58.3,
+          "meal_single": 36.0,
+          "meal_double": 96.0
+        },
+        "error": null,
+        "branch_count": 64
+      },
+      "papajohns": {
+        "pu": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "dlv": {
+          "family": 64.9,
+          "meal_single": 92.0,
+          "meal_double": 125.0
+        },
+        "error": null,
+        "branch_count": 44
+      }
+    }
   }
 ]
