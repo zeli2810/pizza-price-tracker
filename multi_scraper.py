@@ -72,10 +72,21 @@ MEAL_KW      = ["ארוחה", "ארוחות", "deal", "מבצע", "combo", "meal
 # Patterns that indicate a single-pizza meal deal (pizza + extras)
 SINGLE_MEAL_KW = ["משפחתית + ", "משפחתי + ", "+ נלווה", "+ קינוח", "+ שתיה", "+ שתייה", "+ פחית"]
 PIZZA_CAT_KW = ["פיצ", "pizza"]
+# A pizza *meal* must actually contain a pizza. Family/large keywords count too,
+# because at these chains "משפחתית" always refers to a pizza size.
+PIZZA_REF_KW = ["פיצ", "pizza", "משפחתי", "משפחתית", "מגש", 'l ', "xl", "14\""]
+# Non-pizza mains that must never be counted as a pizza meal (a "+ drink" combo
+# built around a sandwich/chicken would otherwise win the cheapest-price pick).
+NON_PIZZA_KW = ["כריך", "סנדוויץ", "צ'יקן", "chicken", "נאגט", "טורטיה",
+                "סלט", "salad", "wrap", "wings", "כנפי", "מוצרלה סטיקס", "פוקצ"]
 
 def kw_match(text, kws):
     t = text.lower()
     return any(k.lower() in t for k in kws)
+
+def is_pizza_item(ctx):
+    """True only if the context references a pizza and isn't a non-pizza main."""
+    return kw_match(ctx, PIZZA_REF_KW) and not kw_match(ctx, NON_PIZZA_KW)
 
 def is_multi_pizza(ctx):
     """Return True if context clearly refers to more than one pizza."""
@@ -107,6 +118,10 @@ def classify_prices(pairs):
     families, singles, doubles = [], [], []
     for price, ctx in pairs:
         c = ctx.lower()
+        # Every bucket requires the item to actually be a pizza (not a
+        # sandwich/chicken combo that happens to be cheaper).
+        if not is_pizza_item(ctx):
+            continue
         if kw_match(c, DOUBLE_KW) or is_multi_pizza(ctx):
             doubles.append(price)
         elif kw_match(ctx, SINGLE_MEAL_KW):
