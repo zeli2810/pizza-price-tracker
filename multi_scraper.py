@@ -593,15 +593,14 @@ def scrape_dominos(pw):
     # ── API fallback for missing services ──
     pu_miss = all(v is None for v in r["pu"].values())
     dlv_miss = all(v is None for v in r["dlv"].values())
-    if pu_miss or dlv_miss:
+    if pu_miss:
         api = _dominos_api_prices()
-        if pu_miss and any(v is not None for v in api["pu"].values()):
+        if any(v is not None for v in api["pu"].values()):
             r["pu"] = api["pu"]
-        if dlv_miss and any(v is not None for v in api["dlv"].values()):
-            r["dlv"] = api["dlv"]
-    # NOTE: we intentionally do NOT copy pickup→delivery. Domino's delivery has
-    # a different (marked-up) price list that this scraper can't reliably reach
-    # yet, so delivery is left empty ("—") rather than showing a fake value.
+    # NOTE: delivery is intentionally left empty ("—"). Domino's delivery has a
+    # different (marked-up) price list this scraper can't reach reliably yet —
+    # and the API's delivery getMenu silently returns the *pickup* store menu
+    # when no delivery address is set, so we must not trust it as "delivery".
 
     return r
 
