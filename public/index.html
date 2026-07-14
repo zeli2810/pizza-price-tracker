@@ -146,12 +146,21 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 
 <!-- ============ TAB: Pais Plus (offers) ============ -->
 <div class="panel" id="panel-paisplus">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportPaisplusExcel()">⬇ ייצוא פייס פלוס לאקסל</button>
+  </div>
   <section>
     <h2>הצעות פיצה – פייס פלוס <span id="ppDate" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
     <div class="tbl-wrap">
       <table id="ppTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
     <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ניקוד לפי מיקום בדף: שורה 1 = 100 · שורה 2 = 75 · שאר השורות נמוך בהרבה (יורד ככל שיורדים בדף).</p>
+  </section>
+  <section>
+    <h2>ניקוד יומי לפי חברה <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סה"כ ניקוד לכל חברה בכל יום</span></h2>
+    <div class="tbl-wrap">
+      <table id="ppDailyTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
   </section>
   <section>
     <h2>היסטוריה מצטברת (ניקוד לפי חברה) <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סכום הניקוד לאורך כל הימים שנאספו</span></h2>
@@ -435,6 +444,37 @@ function renderPaisplusHistory(){
     <td class="price">${r.last||'—'}</td></tr>`).join('');
 }
 
+// Build the daily score matrix: {dates:[...], companies:[{co, byDate:{}, total}]}
+function ppDailyMatrix(){
+  const dates = ppAll.map(d=>d.date);
+  const map={};  // co -> {byDate:{}, total}
+  ppAll.forEach(day=>{
+    (day.offers||[]).forEach(o=>{
+      const co=o.company||'לא ידוע';
+      const c=map[co]||(map[co]={byDate:{},total:0});
+      const s=offerScore(o.row);
+      c.byDate[day.date]=(c.byDate[day.date]||0)+s;
+      c.total+=s;
+    });
+  });
+  const companies=Object.entries(map).map(([co,c])=>({co,byDate:c.byDate,total:c.total}))
+    .sort((a,b)=>b.total-a.total);
+  return {dates, companies};
+}
+
+// Daily table: total score per company for each day (company × date).
+function renderPaisplusDaily(){
+  const thead=document.querySelector('#ppDailyTable thead');
+  const tbody=document.querySelector('#ppDailyTable tbody');
+  const {dates, companies}=ppDailyMatrix();
+  thead.innerHTML=`<tr><th>חברה</th>${dates.map(d=>`<th>${d}</th>`).join('')}<th>סה"כ</th></tr>`;
+  if(!companies.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${dates.length+2}">אין נתונים עדיין</td></tr>`; return; }
+  tbody.innerHTML=companies.map((c,i)=>`<tr>
+    <td class="rowhead">${i===0?'🏆 ':''}${c.co}</td>
+    ${dates.map(d=>`<td class="price">${c.byDate[d]||'—'}</td>`).join('')}
+    <td class="price ${i===0?'best':''}">${c.total}</td></tr>`).join('');
+}
+
 // ---- excel export (comparison) ----------------------------------------------
 window.exportExcel=function(){
   if(!history.length){ alert('אין נתונים לייצוא'); return; }
@@ -453,6 +493,48 @@ window.exportExcel=function(){
   ws['!cols']=rows[0].map((_,i)=>({wch:i===0?12:16}));
   XLSX.utils.book_append_sheet(wb,ws,'מחירי פיצה');
   XLSX.writeFile(wb,`pizza_prices_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
+// ---- excel export (Pais Plus: offers + daily + cumulative) -------------------
+window.exportPaisplusExcel=function(){
+  if(!ppAll.length){ alert('אין נתוני פייס פלוס לייצוא'); return; }
+  const wb=XLSX.utils.book_new();
+
+  // Sheet 1 — offers of the most recent day (as shown in the table)
+  const latest=ppAll[ppAll.length-1];
+  const oHead=['תאריך','שורה','ניקוד','מועדפת','חברה','הצעה','קטגוריה','מחיר','קישור'];
+  const oRows=[oHead];
+  (latest?.offers||[]).slice()
+    .sort((a,b)=>offerScore(b.row)-offerScore(a.row)||(a.price_value??1e9)-(b.price_value??1e9))
+    .forEach(o=>oRows.push([o.date||latest.date, o.row??'', offerScore(o.row),
+      o.is_preferred?'כן':'', o.company||'', o.offer_text||o.full_text||'',
+      o.category||'', o.price_text||(o.price_value??''), o.product_url||'']));
+  const ws1=XLSX.utils.aoa_to_sheet(oRows);
+  ws1['!cols']=[{wch:11},{wch:6},{wch:7},{wch:8},{wch:14},{wch:40},{wch:22},{wch:14},{wch:36}];
+  XLSX.utils.book_append_sheet(wb,ws1,'הצעות');
+
+  // Sheet 2 — daily score matrix (company × date)
+  const {dates,companies}=ppDailyMatrix();
+  const dHead=['חברה',...dates,'סה"כ'];
+  const dRows=[dHead];
+  companies.forEach(c=>dRows.push([c.co, ...dates.map(d=>c.byDate[d]||0), c.total]));
+  const ws2=XLSX.utils.aoa_to_sheet(dRows);
+  ws2['!cols']=dHead.map((_,i)=>({wch:i===0?18:11}));
+  XLSX.utils.book_append_sheet(wb,ws2,'ניקוד יומי');
+
+  // Sheet 3 — cumulative totals per company
+  const cHead=['חברה','ניקוד מצטבר','הופעות','ימים'];
+  const cRows=[cHead];
+  companies.forEach(c=>{
+    const days=new Set(); let app=0;
+    ppAll.forEach(day=>(day.offers||[]).forEach(o=>{ if((o.company||'לא ידוע')===c.co){app++;days.add(day.date);} }));
+    cRows.push([c.co, c.total, app, days.size]);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(cRows);
+  ws3['!cols']=[{wch:18},{wch:14},{wch:10},{wch:8}];
+  XLSX.utils.book_append_sheet(wb,ws3,'ניקוד מצטבר');
+
+  XLSX.writeFile(wb,`paisplus_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
 // ---- manual refresh ----------------------------------------------------------
@@ -509,7 +591,7 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); renderPaisplusHistory(); }
+function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); }
 
 async function init(){
   initTabs();
