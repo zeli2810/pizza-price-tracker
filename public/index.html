@@ -73,7 +73,9 @@ select,input[type=date]{background:var(--surface2);color:var(--text);border:1px 
 .periodbar{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
   max-width:900px;margin:16px auto 0;font-size:.82rem;color:var(--muted)}
 .periodbar b{color:var(--text)}
-.chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;height:380px}
+.daybtn{background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);
+  cursor:pointer;font-size:.72rem;padding:1px 6px;margin-inline-start:6px}
+.daybtn:hover{background:var(--border)}
 
 details{margin-top:14px}
 summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding:6px 0}
@@ -142,24 +144,10 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 
   <section>
-    <h2>היסטוריית מחירים</h2>
-    <div class="controls">
-      <select id="prodSel"></select>
-      <select id="svcSel">
-        <option value="dlv">משלוח</option>
-        <option value="pu">איסוף עצמי</option>
-      </select>
+    <h2>היסטוריה יומית <span style="font-size:.75rem;color:var(--muted);font-weight:400">· נצברת מדי יום · ⬇ בכל שורה = שליפת אותו יום</span></h2>
+    <div class="tbl-wrap">
+      <table id="rawTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-    <div class="chart-box"><canvas id="histChart"></canvas></div>
-  </section>
-
-  <section>
-    <details>
-      <summary>טבלת נתונים יומית מלאה</summary>
-      <div class="tbl-wrap" style="margin-top:12px">
-        <table id="rawTable"><thead></thead><tbody></tbody></table>
-      </div>
-    </details>
   </section>
 </div>
 
@@ -206,7 +194,6 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 </footer>
 
 <script src="firebase-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
@@ -377,30 +364,7 @@ function renderComparison(){
   t.innerHTML=head+`<tbody>${rows.join('')}</tbody>`;
 }
 
-// ---- history chart -----------------------------------------------------------
-let chart=null;
-function renderChart(){
-  const history=viewHistory();
-  const prodKey=document.getElementById('prodSel').value;
-  const svcKey=document.getElementById('svcSel').value;
-  const labels=history.map(e=>e.date);
-  const datasets=SITES.map(s=>({
-    label:s.name, data:history.map(e=>priceOf(e,s,prodKey,svcKey)),
-    borderColor:color(s.key), backgroundColor:color(s.key),
-    spanGaps:true, tension:.25, pointRadius:3, borderWidth:2,
-  }));
-  const ctx=document.getElementById('histChart');
-  if(chart) chart.destroy();
-  chart=new Chart(ctx,{type:'line',data:{labels,datasets},options:{
-    responsive:true,maintainAspectRatio:false,animation:false,
-    plugins:{legend:{labels:{color:'#e6edf3',boxWidth:14}},
-      tooltip:{callbacks:{label:c=>`${c.dataset.label}: ${c.parsed.y!=null?'₪'+c.parsed.y:'—'}`}}},
-    scales:{x:{ticks:{color:'#8b949e'},grid:{color:'#21262d'}},
-      y:{ticks:{color:'#8b949e',callback:v=>'₪'+v},grid:{color:'#21262d'}}}
-  }});
-}
-
-// ---- raw daily table ---------------------------------------------------------
+// ---- daily history table -----------------------------------------------------
 const RAW_COLS=[];
 SITES.forEach(s=>{
   PRODUCTS.forEach(p=>SVCS.forEach(sv=>RAW_COLS.push({site:s,prod:p,svc:sv,label:`${p.label} ${sv.label}`})));
@@ -420,9 +384,28 @@ function renderRaw(){
       if(c.branches){ const n=e.chains?.[c.site.key]?.branch_count; return `<td>${n!=null?n:'—'}</td>`; }
       return `<td class="price">${fmt(priceOf(e,c.site,c.prod.key,c.svc.key))}</td>`;
     }).join('');
-    return `<tr><td class="rowhead">${e.date}</td>${cells}</tr>`;
+    return `<tr><td class="rowhead">${e.date} <button class="daybtn" title="שליפת ${e.date} לאקסל" onclick="exportDay('${e.date}')">⬇</button></td>${cells}</tr>`;
   }).join('');
 }
+
+// Export a single day's comparison snapshot (product × chain) to Excel.
+window.exportDay=function(date){
+  const e=history.find(x=>x.date===date);
+  if(!e){ alert('לא נמצאו נתונים ליום '+date); return; }
+  const head=['מוצר',...SITES.map(s=>s.name)];
+  const rows=[head];
+  PRODUCTS.forEach(p=>SVCS.forEach(sv=>{
+    rows.push([`${p.label} ${sv.label}`, ...SITES.map(s=>{
+      const v = s.split||sv.key!=='pu' ? priceOf(e,s,p.key,sv.key) : null;
+      return v!=null?Number(v):'';
+    })]);
+  }));
+  rows.push(['סניפים פעילים', ...SITES.map(s=>e.chains?.[s.key]?.branch_count ?? '')]);
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=head.map((_,i)=>({wch:i===0?22:14}));
+  XLSX.utils.book_append_sheet(wb,ws,date);
+  XLSX.writeFile(wb,`pizza_${date}.xlsx`);
+};
 
 // ---- Pais Plus offers tab ----------------------------------------------------
 function renderPaisplus(){
@@ -635,13 +618,10 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); }
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); }
 
 async function init(){
   initTabs();
-  document.getElementById('prodSel').innerHTML=PRODUCTS.map(p=>`<option value="${p.key}">${p.label}</option>`).join('');
-  document.getElementById('prodSel').addEventListener('change',renderChart);
-  document.getElementById('svcSel').addEventListener('change',renderChart);
 
   // period filter
   const periodSel=document.getElementById('periodSel'), customRange=document.getElementById('customRange');
