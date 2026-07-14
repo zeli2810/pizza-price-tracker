@@ -151,6 +151,13 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div class="tbl-wrap">
       <table id="ppTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ניקוד לפי מיקום בדף: שורה 1 = 100 · שורה 2 = 75 · שאר השורות נמוך בהרבה (יורד ככל שיורדים בדף).</p>
+  </section>
+  <section>
+    <h2>היסטוריה מצטברת (ניקוד לפי חברה) <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סכום הניקוד לאורך כל הימים שנאספו</span></h2>
+    <div class="tbl-wrap">
+      <table id="ppHistTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
   </section>
 </div>
 
@@ -195,8 +202,17 @@ const color = k => getComputedStyle(document.documentElement).getPropertyValue('
 
 let history = [];      // [{date,timestamp,chains:{...}}]
 let statusDoc = null;  // meta/status
-let ppOffers = null;   // {date, offers:[]}
+let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
 let usingFallback = false;
+
+// Score an offer by the row it appears in on the Pais Plus page: higher row =
+// more points, and the top two rows score MUCH higher than the rest.
+function offerScore(row){
+  const r = Number(row) || 99;
+  if(r===1) return 100;
+  if(r===2) return 75;
+  return Math.max(1, 20 - (r-3)*4);  // row3=20, row4=16, row5=12 …
+}
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
@@ -227,46 +243,47 @@ async function loadFromFirestore(){
   const hist = snap.docs.map(d=>d.data());
   let status=null;
   try{ const s=await getDoc(doc(db,'meta','status')); if(s.exists()) status=s.data(); }catch(e){}
-  // Pais Plus offers (latest date)
-  let pp=null;
+  // Pais Plus offers — ALL dates (for the cumulative-history table)
+  let ppAll=[];
   try{
     const ps=await getDocs(query(collection(db,'paisplus_offers'), orderBy('date')));
-    if(ps.docs.length){ pp = ps.docs[ps.docs.length-1].data(); }
+    ppAll = ps.docs.map(d=>d.data());
   }catch(e){}
-  return { hist, status, pp };
+  return { hist, status, ppAll };
 }
 
 async function loadFallback(){
-  const out={hist:[],status:null,pp:null};
+  const out={hist:[],status:null,ppAll:[]};
   for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hist=await r.json(); break; } }catch(e){}
   }
   for(const u of ['data/paisplus/offers.json','../data/paisplus/offers.json','/data/paisplus/offers.json']){
-    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.pp=groupLatestOffers(await r.json()); break; } }catch(e){}
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ppAll=groupAllOffers(await r.json()); break; } }catch(e){}
   }
   return out;
 }
 
-// offers.json is a flat array across all dates → keep only the latest date
-function groupLatestOffers(arr){
-  if(!Array.isArray(arr)||!arr.length) return null;
-  const latest = arr.reduce((m,o)=>o.date>m?o.date:m, arr[0].date);
-  return { date: latest, offers: arr.filter(o=>o.date===latest) };
+// offers.json is a flat array across all dates → group into [{date,offers}] sorted
+function groupAllOffers(arr){
+  if(!Array.isArray(arr)||!arr.length) return [];
+  const byDate={};
+  arr.forEach(o=>{ (byDate[o.date]=byDate[o.date]||[]).push(o); });
+  return Object.keys(byDate).sort().map(d=>({date:d, offers:byDate[d]}));
 }
 
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,pp} = await loadFromFirestore();
+      let {hist,status,ppAll} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore has no Pais Plus yet, try local fallback for that piece.
-      if(!pp){ const fb=await loadFallback(); pp=fb.pp; }
-      return {hist,status,pp};
+      if(!ppAll||!ppAll.length){ const fb=await loadFallback(); ppAll=fb.ppAll; }
+      return {hist,status,ppAll};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, pp:fb.pp };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -361,24 +378,61 @@ function renderRaw(){
 
 // ---- Pais Plus offers tab ----------------------------------------------------
 function renderPaisplus(){
+  const latest = ppAll.length ? ppAll[ppAll.length-1] : null;
   const thead=document.querySelector('#ppTable thead');
   const tbody=document.querySelector('#ppTable tbody');
-  document.getElementById('ppDate').textContent = ppOffers?.date ? `· נכון ל-${ppOffers.date}` : '';
-  const cols=['חברה','הצעה','קטגוריה','מחיר','קישור'];
+  document.getElementById('ppDate').textContent = latest?.date ? `· נכון ל-${latest.date}` : '';
+  const cols=['תאריך','שורה','ניקוד','מועדפת','חברה','הצעה','קטגוריה','מחיר','קישור'];
   thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
-  const offers=(ppOffers?.offers||[]).slice().sort((a,b)=>(a.price_value??1e9)-(b.price_value??1e9));
+  // sort by score (row) descending, then price ascending
+  const offers=(latest?.offers||[]).slice().sort((a,b)=>
+    offerScore(b.row)-offerScore(a.row) || (a.price_value??1e9)-(b.price_value??1e9));
   if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין נתונים עדיין</td></tr>`; return; }
   tbody.innerHTML=offers.map(o=>{
-    const pref=o.is_preferred?`<span class="pref-badge">מועדפת</span>`:'';
+    const score=offerScore(o.row);
+    const pref=o.is_preferred?`<span class="pref-badge">מועדפת</span>`:'—';
     const price=o.price_text || (o.price_value!=null?fmt(o.price_value):'—');
     const link=o.product_url?`<a class="offer-link" href="${o.product_url}" target="_blank" rel="noopener">לצפייה</a>`:'—';
+    const topRow = (Number(o.row)||99)<=2;
     return `<tr>
-      <td class="rowhead">${o.company||'—'}${pref}</td>
+      <td>${o.date||latest.date||'—'}</td>
+      <td>${o.row??'—'}</td>
+      <td class="price ${topRow?'best':''}">${score}</td>
+      <td>${pref}</td>
+      <td class="rowhead">${o.company||'—'}</td>
       <td class="rowhead" style="font-weight:400">${o.offer_text||o.full_text||'—'}</td>
       <td>${o.category||'—'}</td>
       <td class="price">${price}</td>
       <td>${link}</td></tr>`;
   }).join('');
+}
+
+// Cumulative history: total accumulated score per company across ALL dates.
+function renderPaisplusHistory(){
+  const thead=document.querySelector('#ppHistTable thead');
+  const tbody=document.querySelector('#ppHistTable tbody');
+  const cols=['חברה','ניקוד מצטבר','הופעות','ימים','ניקוד אחרון'];
+  thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const agg={};  // company -> {score, appearances, days:Set}
+  ppAll.forEach(day=>{
+    (day.offers||[]).forEach(o=>{
+      const co=o.company||'לא ידוע';
+      const a=agg[co]||(agg[co]={score:0,appearances:0,days:new Set()});
+      a.score+=offerScore(o.row); a.appearances++; a.days.add(day.date);
+    });
+  });
+  // "last score" = sum of a company's scores on the most recent date
+  const lastByCo={};
+  if(ppAll.length){ (ppAll[ppAll.length-1].offers||[]).forEach(o=>{ const co=o.company||'לא ידוע'; lastByCo[co]=(lastByCo[co]||0)+offerScore(o.row); }); }
+  const rows=Object.entries(agg).map(([co,a])=>({co,score:a.score,appearances:a.appearances,days:a.days.size,last:lastByCo[co]||0}))
+    .sort((x,y)=>y.score-x.score);
+  if(!rows.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין היסטוריה עדיין</td></tr>`; return; }
+  tbody.innerHTML=rows.map((r,i)=>`<tr>
+    <td class="rowhead">${i===0?'🏆 ':''}${r.co}</td>
+    <td class="price ${i===0?'best':''}">${r.score}</td>
+    <td>${r.appearances}</td>
+    <td>${r.days}</td>
+    <td class="price">${r.last||'—'}</td></tr>`).join('');
 }
 
 // ---- excel export (comparison) ----------------------------------------------
@@ -428,9 +482,9 @@ window.runScrape=async function(){
     for(let i=0;i<24;i++){
       await new Promise(res=>setTimeout(res,15000));
       log.textContent=`בודק אם העדכון הסתיים… (${i+1}/24)`;
-      const {hist,status,pp}=await loadData();
+      const {hist,status,ppAll:freshPP}=await loadData();
       const fresh=hist[hist.length-1];
-      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppOffers=pp;renderAll();
+      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppAll=freshPP;renderAll();
         log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true); }
     }
     log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.'; finishRefresh(false);
@@ -455,7 +509,7 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); }
+function renderAll(){ renderStatus(); renderComparison(); renderChart(); renderRaw(); renderPaisplus(); renderPaisplusHistory(); }
 
 async function init(){
   initTabs();
@@ -463,8 +517,8 @@ async function init(){
   document.getElementById('prodSel').addEventListener('change',renderChart);
   document.getElementById('svcSel').addEventListener('change',renderChart);
 
-  const {hist,status,pp}=await loadData();
-  history=hist; statusDoc=status; ppOffers=pp;
+  const {hist,status,ppAll:pp}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[];
 
   const last=history[history.length-1];
   document.getElementById('lastUpdate').innerHTML=
