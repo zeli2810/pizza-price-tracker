@@ -1,0 +1,25 @@
+name: Backfill Firestore from JSON
+
+# One-time / on-demand: push the committed Pais Plus offers history into
+# Firestore. Run manually from the Actions tab when Firestore is missing days
+# that the JSON history already has.
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    env:
+      FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install firebase-admin
+        run: pip install firebase-admin==6.5.0
+      - name: Backfill
+        run: python backfill_firestore.py
