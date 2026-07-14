@@ -68,8 +68,11 @@ td.best::after{content:" ★";font-size:.7rem}
 .site-pill{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-start:6px;vertical-align:middle}
 
 .controls{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
-select{background:var(--surface2);color:var(--text);border:1px solid var(--border);
-  border-radius:8px;padding:6px 12px;font-size:.82rem;font-family:inherit}
+select,input[type=date]{background:var(--surface2);color:var(--text);border:1px solid var(--border);
+  border-radius:8px;padding:6px 12px;font-size:.82rem;font-family:inherit;color-scheme:dark}
+.periodbar{display:flex;justify-content:center;align-items:center;gap:8px;flex-wrap:wrap;
+  max-width:900px;margin:16px auto 0;font-size:.82rem;color:var(--muted)}
+.periodbar b{color:var(--text)}
 .chart-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;height:380px}
 
 details{margin-top:14px}
@@ -98,6 +101,22 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   <button class="tab" data-tab="paisplus">פייס פלוס</button>
   <button class="tab" data-tab="wolt">וולט</button>
 </nav>
+
+<!-- Global period filter (applies to all tabs) -->
+<div class="periodbar">
+  <b>תקופה:</b>
+  <select id="periodSel">
+    <option value="all">הכל</option>
+    <option value="day">יום אחרון</option>
+    <option value="week">שבוע אחרון</option>
+    <option value="month">חודש אחרון</option>
+    <option value="year">שנה אחרונה</option>
+    <option value="custom">טווח תאריכים ידני</option>
+  </select>
+  <span id="customRange" style="display:none">
+    מ־<input type="date" id="dateFrom"> עד <input type="date" id="dateTo">
+  </span>
+</div>
 
 <!-- ============ TAB: comparison (Domino's / Pizza Hut / Papa John's) ============ -->
 <div class="panel active" id="panel-compare">
@@ -223,6 +242,22 @@ function offerScore(row){
   return Math.max(1, 20 - (r-3)*4);  // row3=20, row4=16, row5=12 …
 }
 
+// ---- global period filter (applies to all tabs) ----------------------------
+let period = { mode:'all', from:'', to:'' };
+function rangeBounds(){
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date)].filter(Boolean).sort();
+  const maxD = allDates.length ? allDates[allDates.length-1] : null;
+  if(period.mode==='all' || !maxD) return null;
+  if(period.mode==='custom') return [period.from||'0000-00-00', period.to||'9999-12-31'];
+  const days = {day:1, week:7, month:30, year:365}[period.mode] || 1;
+  // Compute entirely in UTC so the date doesn't drift in +timezones.
+  const d = new Date(maxD+'T00:00:00Z'); d.setUTCDate(d.getUTCDate()-(days-1));
+  return [d.toISOString().slice(0,10), maxD];
+}
+function inRange(date){ const b=rangeBounds(); return !b ? true : (date>=b[0] && date<=b[1]); }
+function viewHistory(){ return history.filter(e=>inRange(e.date)); }
+function viewPpAll(){ return ppAll.filter(d=>inRange(d.date)); }
+
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
 function priceOf(entry, site, prodKey, svcKey){
@@ -298,6 +333,7 @@ async function loadData(){
 // ---- status cards ------------------------------------------------------------
 function hasAnyPrice(c){ return ['pu','dlv'].some(sv=>c[sv]&&Object.values(c[sv]).some(v=>v!=null)); }
 function renderStatus(){
+  const history=viewHistory();
   const wrap=document.getElementById('statusCards');
   const last=history[history.length-1];
   wrap.innerHTML=SITES.map(s=>{
@@ -318,6 +354,7 @@ function renderStatus(){
 
 // ---- comparison table --------------------------------------------------------
 function renderComparison(){
+  const history=viewHistory();
   const t=document.getElementById('cmpTable');
   const last=history[history.length-1];
   if(!last){ t.innerHTML='<tbody><tr><td class="no-data">אין נתונים עדיין</td></tr></tbody>'; return; }
@@ -343,6 +380,7 @@ function renderComparison(){
 // ---- history chart -----------------------------------------------------------
 let chart=null;
 function renderChart(){
+  const history=viewHistory();
   const prodKey=document.getElementById('prodSel').value;
   const svcKey=document.getElementById('svcSel').value;
   const labels=history.map(e=>e.date);
@@ -369,6 +407,7 @@ SITES.forEach(s=>{
   RAW_COLS.push({site:s,branches:true,label:'סניפים'});
 });
 function renderRaw(){
+  const history=viewHistory();
   const thead=document.querySelector('#rawTable thead');
   const tbody=document.querySelector('#rawTable tbody');
   const per={}; SITES.forEach(s=>per[s.key]=0); RAW_COLS.forEach(c=>per[c.site.key]++);
@@ -387,6 +426,7 @@ function renderRaw(){
 
 // ---- Pais Plus offers tab ----------------------------------------------------
 function renderPaisplus(){
+  const ppAll=viewPpAll();
   const latest = ppAll.length ? ppAll[ppAll.length-1] : null;
   const thead=document.querySelector('#ppTable thead');
   const tbody=document.querySelector('#ppTable tbody');
@@ -418,6 +458,7 @@ function renderPaisplus(){
 
 // Cumulative history: total accumulated score per company across ALL dates.
 function renderPaisplusHistory(){
+  const ppAll=viewPpAll();
   const thead=document.querySelector('#ppHistTable thead');
   const tbody=document.querySelector('#ppHistTable tbody');
   const cols=['חברה','ניקוד מצטבר','הופעות','ימים','ניקוד אחרון'];
@@ -446,6 +487,7 @@ function renderPaisplusHistory(){
 
 // Build the daily score matrix: {dates:[...], companies:[{co, byDate:{}, total}]}
 function ppDailyMatrix(){
+  const ppAll=viewPpAll();
   const dates = ppAll.map(d=>d.date);
   const map={};  // co -> {byDate:{}, total}
   ppAll.forEach(day=>{
@@ -477,6 +519,7 @@ function renderPaisplusDaily(){
 
 // ---- excel export (comparison) ----------------------------------------------
 window.exportExcel=function(){
+  const history=viewHistory();
   if(!history.length){ alert('אין נתונים לייצוא'); return; }
   const h1=['תאריך'],h2=[''];
   RAW_COLS.forEach(c=>{ h1.push(c.site.name); h2.push(c.branches?'סניפים':c.label); });
@@ -497,6 +540,7 @@ window.exportExcel=function(){
 
 // ---- excel export (Pais Plus: offers + daily + cumulative) -------------------
 window.exportPaisplusExcel=function(){
+  const ppAll=viewPpAll();
   if(!ppAll.length){ alert('אין נתוני פייס פלוס לייצוא'); return; }
   const wb=XLSX.utils.book_new();
 
@@ -599,8 +643,25 @@ async function init(){
   document.getElementById('prodSel').addEventListener('change',renderChart);
   document.getElementById('svcSel').addEventListener('change',renderChart);
 
+  // period filter
+  const periodSel=document.getElementById('periodSel'), customRange=document.getElementById('customRange');
+  const dateFrom=document.getElementById('dateFrom'), dateTo=document.getElementById('dateTo');
+  function applyPeriod(){
+    period.mode=periodSel.value;
+    period.from=dateFrom.value; period.to=dateTo.value;
+    customRange.style.display = period.mode==='custom' ? 'inline' : 'none';
+    renderAll();
+  }
+  periodSel.addEventListener('change',applyPeriod);
+  dateFrom.addEventListener('change',applyPeriod);
+  dateTo.addEventListener('change',applyPeriod);
+
   const {hist,status,ppAll:pp}=await loadData();
   history=hist; statusDoc=status; ppAll=pp||[];
+
+  // prefill custom-range inputs with the data's date bounds
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date)].filter(Boolean).sort();
+  if(allDates.length){ dateFrom.value=allDates[0]; dateTo.value=allDates[allDates.length-1]; }
 
   const last=history[history.length-1];
   document.getElementById('lastUpdate').innerHTML=
