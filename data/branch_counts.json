@@ -1,7 +1,7 @@
 [
   {
     "date": "2026-07-15",
-    "timestamp": "2026-07-15 06:25:42",
+    "timestamp": "2026-07-15 18:53:41",
     "chains": {
       "dominos": {
         "total": 64,
@@ -9,14 +9,14 @@
         "source": "scraped"
       },
       "pizzahut": {
-        "total": 100,
-        "tlv": null,
-        "source": "manual"
+        "total": 103,
+        "tlv": 5,
+        "source": "scraped"
       },
       "papajohns": {
-        "total": 43,
-        "tlv": null,
-        "source": "manual"
+        "total": 45,
+        "tlv": 4,
+        "source": "scraped"
       },
       "shemesh": {
         "total": 100,

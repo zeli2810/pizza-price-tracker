@@ -1,17 +1,18 @@
 """
 Branch-count tracker: total branches + Tel Aviv branches per pizza chain.
 
-Reality of the sources (investigated 2026-07):
-  - Domino's  : clean REST API — total = open-store count, TLV = stores in
-                "תל אביב יפו". Scraped live and reliably.
-  - Pizza Hut : /branches lists transliterated slugs; Tel Aviv isn't derivable.
-  - Papa John's: site is Akamai-protected; count only via the slow order flow.
-  - Pizza Shemesh / Story / Prego: JS single-page apps with no static data.
+Live-scraped (exact, daily):
+  - Domino's   : REST API — total open stores + stores in "תל אביב יפו".
+  - Pizza Hut  : /branch/ archive — each card shows the branch address, so we
+                 count total and those whose address is in Tel Aviv.
+  - Papa John's: /branch/ archive (same pattern; a real Chrome browser passes
+                 the Akamai check).
 
-So only Domino's is scraped live. The rest use MANUAL values (seeded from the
-figures the user supplied) until per-site scrapers are built. Every record is
-tagged with its source ("scraped" / "manual") so the dashboard can show it.
+Manual fallback (until per-site scrapers are built):
+  - Pizza Shemesh / Story / Prego — JS single-page apps; still using the
+    user-provided figures (Tel Aviv unknown → null).
 
+Every record is tagged source = "scraped" | "manual".
 Output: data/branch_counts.json (history) + Firestore branch_counts/{date}.
 """
 
@@ -20,8 +21,9 @@ from pathlib import Path
 from datetime import datetime
 
 import requests
+from playwright.sync_api import sync_playwright
 
-from multi_scraper import UA  # importing this also sets UTF-8 stdout on Windows
+from multi_scraper import UA  # also sets UTF-8 stdout on Windows
 
 DATA_FILE = Path(__file__).parent / "data" / "branch_counts.json"
 
@@ -34,16 +36,22 @@ CHAINS = {
     "prego":     "פיצה פרגו",
 }
 
-# Manual fallback values (user-provided). Used when a chain can't be scraped.
-# Update these here (or later via a scraper) as the real numbers change.
+# Strings that mark a Tel Aviv address.
+TLV_KEYS = ["תל אביב", "תל-אביב", 'ת"א', "ת'א", "תל אביב-יפו", "תל אביב יפו"]
+
+# Manual fallback values (user-provided) for chains we can't scrape yet.
 MANUAL = {
     "dominos":   {"total": 64,  "tlv": 7},
-    "pizzahut":  {"total": 100, "tlv": None},
-    "papajohns": {"total": 43,  "tlv": None},
+    "pizzahut":  {"total": 103, "tlv": 5},
+    "papajohns": {"total": 45,  "tlv": 4},
     "shemesh":   {"total": 100, "tlv": None},
-    "story":     {"total": 62,  "tlv": None},
+    "story":     {"total": 62,  "tlv": 0},   # city list confirms no Tel Aviv branch
     "prego":     {"total": 25,  "tlv": None},
 }
+
+
+def _is_tlv(text):
+    return any(k in text for k in TLV_KEYS)
 
 
 def scrape_dominos_branches():
@@ -77,9 +85,52 @@ def scrape_dominos_branches():
                 break
     except Exception:
         pass
-    if not total:
-        return None
-    return {"total": total, "tlv": tlv}
+    return {"total": total, "tlv": tlv} if total else None
+
+
+_WP_EXTRACT = r"""
+() => {
+  const uniq = {};
+  document.querySelectorAll('a[href*="/branch/"]').forEach(a => {
+    const h = (a.getAttribute('href') || '').replace(/\/$/, '');
+    const m = h.match(/\/branch\/([^\/]+)$/);
+    if (!m) return;
+    const slug = m[1];
+    if (slug === 'page' || slug === 'feed') return;
+    const box = a.closest('article,li,[class*=jet],[class*=card]') || a.parentElement || a;
+    const t = (box.innerText || a.innerText || '').replace(/\s+/g, ' ').trim();
+    if (!uniq[slug] || t.length > uniq[slug].length) uniq[slug] = t;
+  });
+  return uniq;
+}
+"""
+
+
+def scrape_wp_branches(base_url, pw):
+    """Total + Tel Aviv count from a WordPress /branch/ archive (address per card)."""
+    browser = pw.chromium.launch(
+        channel="chrome", headless=True,
+        args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
+    try:
+        ctx = browser.new_context(locale="he-IL", user_agent=UA, viewport={"width": 1400, "height": 1200})
+        ctx.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});")
+        page = ctx.new_page()
+        page.goto(base_url + "/branch/", timeout=45000, wait_until="domcontentloaded")
+        page.wait_for_timeout(4000)
+        cards = {}
+        for _ in range(10):
+            for slug, txt in (page.evaluate(_WP_EXTRACT) or {}).items():
+                if slug not in cards or len(txt) > len(cards[slug]):
+                    cards[slug] = txt
+            page.mouse.wheel(0, 3000)
+            page.wait_for_timeout(600)
+        if not cards:
+            return None
+        total = len(cards)
+        tlv = sum(1 for t in cards.values() if _is_tlv(t))
+        return {"total": total, "tlv": tlv}
+    finally:
+        browser.close()
 
 
 def load_history():
@@ -94,23 +145,31 @@ def run_scrape(verbose=True):
     today = now.strftime("%Y-%m-%d")
     entry = {"date": today, "timestamp": now.strftime("%Y-%m-%d %H:%M:%S"), "chains": {}}
 
-    # Domino's — live scrape, fall back to manual on failure.
-    dom = None
+    # Domino's — API
+    scraped = {}
     try:
-        dom = scrape_dominos_branches()
+        d = scrape_dominos_branches()
+        if d:
+            scraped["dominos"] = d
     except Exception as e:
-        if verbose:
-            print(f"  Dominos branch scrape failed: {e}")
-    if dom:
-        entry["chains"]["dominos"] = {**dom, "source": "scraped"}
-    else:
-        entry["chains"]["dominos"] = {**MANUAL["dominos"], "source": "manual"}
+        if verbose: print(f"  Dominos scrape failed: {e}")
 
-    # The rest — manual values for now.
+    # Pizza Hut + Papa John's — WordPress /branch/ archives
+    with sync_playwright() as pw:
+        for key, base in [("pizzahut", "https://www.pizzahut.co.il"),
+                          ("papajohns", "https://www.papajohns.co.il")]:
+            try:
+                r = scrape_wp_branches(base, pw)
+                if r and r["total"]:
+                    scraped[key] = r
+            except Exception as e:
+                if verbose: print(f"  {CHAINS[key]} scrape failed: {e}")
+
     for key in CHAINS:
-        if key == "dominos":
-            continue
-        entry["chains"][key] = {**MANUAL[key], "source": "manual"}
+        if key in scraped:
+            entry["chains"][key] = {**scraped[key], "source": "scraped"}
+        else:
+            entry["chains"][key] = {**MANUAL[key], "source": "manual"}
 
     if verbose:
         for k, v in entry["chains"].items():
@@ -130,8 +189,7 @@ def run_scrape(verbose=True):
     try:
         import firestore_sync
         if firestore_sync.is_enabled():
-            db = firestore_sync.get_client()
-            db.collection("branch_counts").document(today).set(entry)
+            firestore_sync.get_client().collection("branch_counts").document(today).set(entry)
             print("  Synced branch counts → Firestore ✓")
     except Exception as e:
         if verbose:
