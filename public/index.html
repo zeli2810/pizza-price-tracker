@@ -189,14 +189,17 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
-<!-- ============ TAB: Branch counts (placeholder) ============ -->
+<!-- ============ TAB: Branch counts ============ -->
 <div class="panel" id="panel-branches">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportBranchesExcel()">⬇ ייצוא סניפים לאקסל</button>
+  </div>
   <section>
-    <div class="placeholder">
-      <div class="big">🏪</div>
-      <h2 style="color:var(--muted)">כמות סניפים — בקרוב</h2>
-      <p>לשונית ייעודית למעקב אחר מספר הסניפים לכל רשת — לבנייה מאוחרת יותר.</p>
+    <h2>כמות סניפים <span style="font-size:.75rem;color:var(--muted);font-weight:400">· היסטוריה יומית (העדכני למעלה) · סה"כ + תל אביב לכל רשת</span></h2>
+    <div class="tbl-wrap">
+      <table id="branchTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">דומינוס נסרק אוטומטית (כולל תל אביב). שאר הרשתות — ערכים ידניים שניתן לעדכן; נתון "תל אביב" עבורן טרם זמין (~).</p>
   </section>
 </div>
 
@@ -227,9 +230,19 @@ const PRODUCTS = [
 const SVCS = [ {key:'pu',label:'איסוף'}, {key:'dlv',label:'משלוח'} ];
 const color = k => getComputedStyle(document.documentElement).getPropertyValue('--c-'+k).trim() || '#888';
 
+const BRANCH_CHAINS = [
+  { key:'dominos',   name:'דומינוס' },
+  { key:'pizzahut',  name:'פיצה האט' },
+  { key:'papajohns', name:"פאפא ג'ונס" },
+  { key:'shemesh',   name:'פיצה שמש' },
+  { key:'story',     name:'פיצה סטורי' },
+  { key:'prego',     name:'פיצה פרגו' },
+];
+
 let history = [];      // [{date,timestamp,chains:{...}}]
 let statusDoc = null;  // meta/status
 let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
+let branchAll = [];    // [{date, chains:{key:{total,tlv,source}}}, ...]
 let usingFallback = false;
 
 // Score an offer by the row it appears in on the Pais Plus page: higher row =
@@ -244,7 +257,7 @@ function offerScore(row){
 // ---- global period filter (applies to all tabs) ----------------------------
 let period = { mode:'all', from:'', to:'' };
 function rangeBounds(){
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   const maxD = allDates.length ? allDates[allDates.length-1] : null;
   if(period.mode==='all' || !maxD) return null;
   if(period.mode==='custom') return [period.from||'0000-00-00', period.to||'9999-12-31'];
@@ -256,6 +269,7 @@ function rangeBounds(){
 function inRange(date){ const b=rangeBounds(); return !b ? true : (date>=b[0] && date<=b[1]); }
 function viewHistory(){ return history.filter(e=>inRange(e.date)); }
 function viewPpAll(){ return ppAll.filter(d=>inRange(d.date)); }
+function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
@@ -310,16 +324,25 @@ async function loadFromFirestore(){
     const ps=await getDocs(query(collection(db,'paisplus_offers'), orderBy('date')));
     ppAll = ps.docs.map(d=>d.data());
   }catch(e){}
-  return { hist, status, ppAll };
+  // Branch counts — ALL dates
+  let branchAll=[];
+  try{
+    const bs=await getDocs(query(collection(db,'branch_counts'), orderBy('date')));
+    branchAll = bs.docs.map(d=>d.data());
+  }catch(e){}
+  return { hist, status, ppAll, branchAll };
 }
 
 async function loadFallback(){
-  const out={hist:[],status:null,ppAll:[]};
+  const out={hist:[],status:null,ppAll:[],branchAll:[]};
   for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hist=await r.json(); break; } }catch(e){}
   }
   for(const u of ['data/paisplus/offers.json','../data/paisplus/offers.json','/data/paisplus/offers.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ppAll=groupAllOffers(await r.json()); break; } }catch(e){}
+  }
+  for(const u of ['data/branch_counts.json','../data/branch_counts.json','/data/branch_counts.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.branchAll=await r.json(); break; } }catch(e){}
   }
   return out;
 }
@@ -335,16 +358,20 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll} = await loadFromFirestore();
+      let {hist,status,ppAll,branchAll} = await loadFromFirestore();
       usingFallback=false;
-      // If Firestore has no Pais Plus yet, try local fallback for that piece.
-      if(!ppAll||!ppAll.length){ const fb=await loadFallback(); ppAll=fb.ppAll; }
-      return {hist,status,ppAll};
+      // If Firestore lacks a piece yet, fill it from the local fallback.
+      if(!ppAll||!ppAll.length || !branchAll||!branchAll.length){
+        const fb=await loadFallback();
+        if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
+        if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
+      }
+      return {hist,status,ppAll,branchAll};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, branchAll:fb.branchAll };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -505,6 +532,45 @@ function renderPaisplusHistory(){
     <td>${r.days}</td></tr>`).join('');
 }
 
+// ---- branch counts tab -------------------------------------------------------
+function renderBranches(){
+  const data=viewBranch();
+  const thead=document.querySelector('#branchTable thead');
+  const tbody=document.querySelector('#branchTable tbody');
+  thead.innerHTML=`<tr><th class="rowhead" rowspan="2">תאריך</th>${
+    BRANCH_CHAINS.map(c=>`<th colspan="2" style="color:${color(c.key)}">${c.name}</th>`).join('')}</tr>`+
+    `<tr>${BRANCH_CHAINS.map(()=>`<th>סה"כ</th><th>ת"א</th>`).join('')}</tr>`;
+  if(!data.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${1+BRANCH_CHAINS.length*2}">אין נתונים עדיין</td></tr>`; return; }
+  tbody.innerHTML=[...data].reverse().map(e=>{
+    const cells=BRANCH_CHAINS.map(c=>{
+      const b=e.chains?.[c.key]||{};
+      const man = b.source==='manual';
+      const tot = b.total!=null ? `${man?'~':''}${b.total}` : '—';
+      const tlv = b.tlv!=null ? b.tlv : '—';
+      const tip = man?' title="ערך ידני"':'';
+      return `<td class="price"${tip}>${tot}</td><td class="price">${tlv}</td>`;
+    }).join('');
+    return `<tr><td class="rowhead">${e.date}</td>${cells}</tr>`;
+  }).join('');
+}
+
+window.exportBranchesExcel=function(){
+  const data=viewBranch();
+  if(!data.length){ alert('אין נתוני סניפים לייצוא'); return; }
+  const h1=['תאריך'], h2=[''];
+  BRANCH_CHAINS.forEach(c=>{ h1.push(c.name,c.name); h2.push('סה"כ','ת"א'); });
+  const rows=[h1,h2];
+  [...data].reverse().forEach(e=>{
+    const row=[e.date];
+    BRANCH_CHAINS.forEach(c=>{ const b=e.chains?.[c.key]||{}; row.push(b.total??'', b.tlv??''); });
+    rows.push(row);
+  });
+  const wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=h1.map((_,i)=>({wch:i===0?12:10}));
+  XLSX.utils.book_append_sheet(wb,ws,'כמות סניפים');
+  XLSX.writeFile(wb,`branches_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
 // Build the daily score matrix: {dates:[...], companies:[{co, byDate:{}, total}]}
 function ppDailyMatrix(){
   const ppAll=viewPpAll();
@@ -632,9 +698,9 @@ window.runScrape=async function(){
     for(let i=0;i<24;i++){
       await new Promise(res=>setTimeout(res,15000));
       log.textContent=`בודק אם העדכון הסתיים… (${i+1}/24)`;
-      const {hist,status,ppAll:freshPP}=await loadData();
+      const {hist,status,ppAll:freshPP,branchAll:freshBr}=await loadData();
       const fresh=hist[hist.length-1];
-      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppAll=freshPP;renderAll();
+      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppAll=freshPP;branchAll=freshBr||[];renderAll();
         log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true); }
     }
     log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.'; finishRefresh(false);
@@ -659,7 +725,7 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); }
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderBranches(); }
 
 async function init(){
   initTabs();
@@ -677,11 +743,11 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[];
+  const {hist,status,ppAll:pp,branchAll:br}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; branchAll=br||[];
 
   // prefill custom-range inputs with the data's date bounds
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   if(allDates.length){ dateFrom.value=allDates[0]; dateTo.value=allDates[allDates.length-1]; }
 
   const last=history[history.length-1];

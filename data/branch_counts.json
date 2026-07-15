@@ -1,0 +1,38 @@
+[
+  {
+    "date": "2026-07-15",
+    "timestamp": "2026-07-15 09:15:02",
+    "chains": {
+      "dominos": {
+        "total": 64,
+        "tlv": 7,
+        "source": "scraped"
+      },
+      "pizzahut": {
+        "total": 100,
+        "tlv": null,
+        "source": "manual"
+      },
+      "papajohns": {
+        "total": 43,
+        "tlv": null,
+        "source": "manual"
+      },
+      "shemesh": {
+        "total": 100,
+        "tlv": null,
+        "source": "manual"
+      },
+      "story": {
+        "total": 62,
+        "tlv": null,
+        "source": "manual"
+      },
+      "prego": {
+        "total": 25,
+        "tlv": null,
+        "source": "manual"
+      }
+    }
+  }
+]
