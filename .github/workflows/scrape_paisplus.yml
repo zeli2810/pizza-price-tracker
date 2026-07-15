@@ -45,17 +45,21 @@ jobs:
         if: env.SKIP != 'true'
         run: |
           pip install -r requirements.txt
-          python -m playwright install --with-deps chromium
+          python -m playwright install --with-deps chromium chrome
 
       - name: Run Pais Plus scraper
         if: env.SKIP != 'true'
         run: python paisplus_scraper.py
+
+      - name: Run Wolt scraper
+        if: env.SKIP != 'true'
+        run: python wolt_scraper.py || true
 
       - name: Commit updated offers data
         if: env.SKIP != 'true'
         run: |
           git config user.name "pizza-price-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/paisplus/
-          git diff --quiet --cached || git commit -m "Update Pais Plus pizza offers [skip ci]"
+          git add data/paisplus/ data/wolt_offers.json
+          git diff --quiet --cached || git commit -m "Update Pais Plus + Wolt offers [skip ci]"
           git push

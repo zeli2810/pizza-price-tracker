@@ -18,6 +18,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /wolt_offers/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /branch_counts/{date} {
       allow read: if true;
       allow write: if false;

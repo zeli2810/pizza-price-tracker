@@ -178,13 +178,28 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
-<!-- ============ TAB: Wolt (placeholder) ============ -->
+<!-- ============ TAB: Wolt (pizza discovery) ============ -->
 <div class="panel" id="panel-wolt">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportWoltExcel()">⬇ ייצוא וולט לאקסל</button>
+  </div>
   <section>
-    <div class="placeholder">
-      <div class="big">🛵</div>
-      <h2 style="color:var(--muted)">וולט — בקרוב</h2>
-      <p>הפרוצדורה הייעודית לוולט תיבנה בשלב נפרד.</p>
+    <h2>מסעדות פיצה בוולט <span id="woltDate" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <div class="tbl-wrap">
+      <table id="woltTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ניקוד לפי הדירוג בעמוד (מיון "מומלץ"): שורה 1 = 100 · שורה 2 = 75 · שאר נמוך בהרבה. כתובת ייחוס: תל אביב.</p>
+  </section>
+  <section>
+    <h2>ניקוד יומי לפי מסעדה <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סה"כ ניקוד לכל מסעדה בכל יום</span></h2>
+    <div class="tbl-wrap">
+      <table id="woltDailyTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>היסטוריה מצטברת (ניקוד לפי מסעדה) <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סכום הניקוד לאורך כל הימים שנאספו</span></h2>
+    <div class="tbl-wrap">
+      <table id="woltHistTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
   </section>
 </div>
@@ -242,6 +257,7 @@ const BRANCH_CHAINS = [
 let history = [];      // [{date,timestamp,chains:{...}}]
 let statusDoc = null;  // meta/status
 let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
+let woltAll = [];      // [{date, offers:[]}, ...] — ALL Wolt dates
 let branchAll = [];    // [{date, chains:{key:{total,tlv,source}}}, ...]
 let usingFallback = false;
 
@@ -257,7 +273,7 @@ function offerScore(row){
 // ---- global period filter (applies to all tabs) ----------------------------
 let period = { mode:'all', from:'', to:'' };
 function rangeBounds(){
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   const maxD = allDates.length ? allDates[allDates.length-1] : null;
   if(period.mode==='all' || !maxD) return null;
   if(period.mode==='custom') return [period.from||'0000-00-00', period.to||'9999-12-31'];
@@ -269,6 +285,7 @@ function rangeBounds(){
 function inRange(date){ const b=rangeBounds(); return !b ? true : (date>=b[0] && date<=b[1]); }
 function viewHistory(){ return history.filter(e=>inRange(e.date)); }
 function viewPpAll(){ return ppAll.filter(d=>inRange(d.date)); }
+function viewWolt(){ return woltAll.filter(d=>inRange(d.date)); }
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
@@ -324,22 +341,31 @@ async function loadFromFirestore(){
     const ps=await getDocs(query(collection(db,'paisplus_offers'), orderBy('date')));
     ppAll = ps.docs.map(d=>d.data());
   }catch(e){}
+  // Wolt offers — ALL dates
+  let woltAll=[];
+  try{
+    const ws=await getDocs(query(collection(db,'wolt_offers'), orderBy('date')));
+    woltAll = ws.docs.map(d=>d.data());
+  }catch(e){}
   // Branch counts — ALL dates
   let branchAll=[];
   try{
     const bs=await getDocs(query(collection(db,'branch_counts'), orderBy('date')));
     branchAll = bs.docs.map(d=>d.data());
   }catch(e){}
-  return { hist, status, ppAll, branchAll };
+  return { hist, status, ppAll, woltAll, branchAll };
 }
 
 async function loadFallback(){
-  const out={hist:[],status:null,ppAll:[],branchAll:[]};
+  const out={hist:[],status:null,ppAll:[],woltAll:[],branchAll:[]};
   for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hist=await r.json(); break; } }catch(e){}
   }
   for(const u of ['data/paisplus/offers.json','../data/paisplus/offers.json','/data/paisplus/offers.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ppAll=groupAllOffers(await r.json()); break; } }catch(e){}
+  }
+  for(const u of ['data/wolt_offers.json','../data/wolt_offers.json','/data/wolt_offers.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.woltAll=groupAllOffers(await r.json()); break; } }catch(e){}
   }
   for(const u of ['data/branch_counts.json','../data/branch_counts.json','/data/branch_counts.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.branchAll=await r.json(); break; } }catch(e){}
@@ -358,20 +384,21 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,branchAll} = await loadFromFirestore();
+      let {hist,status,ppAll,woltAll,branchAll} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !branchAll||!branchAll.length){
+      if(!ppAll||!ppAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
+        if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
       }
-      return {hist,status,ppAll,branchAll};
+      return {hist,status,ppAll,woltAll,branchAll};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, branchAll:fb.branchAll };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -603,6 +630,118 @@ function renderPaisplusDaily(){
     <td class="price ${i===0?'best':''}">${c.total}</td></tr>`).join('');
 }
 
+// ---- Wolt tab (mirrors Pais Plus) --------------------------------------------
+function renderWolt(){
+  const woltAll=viewWolt();
+  const latest = woltAll.length ? woltAll[woltAll.length-1] : null;
+  const thead=document.querySelector('#woltTable thead');
+  const tbody=document.querySelector('#woltTable tbody');
+  document.getElementById('woltDate').textContent = latest?.date ? `· נכון ל-${latest.date}` : '';
+  const cols=['תאריך','שורה','ניקוד','מועדפת','מסעדה','הצעה','קטגוריה','מחיר','קישור'];
+  thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const offers=(latest?.offers||[]).slice().sort((a,b)=>
+    offerScore(b.row)-offerScore(a.row) || (a.position??1e9)-(b.position??1e9));
+  if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין נתונים עדיין</td></tr>`; return; }
+  tbody.innerHTML=offers.map(o=>{
+    const score=offerScore(o.row);
+    const pref=o.is_preferred?`<span class="pref-badge">מבצע</span>`:'—';
+    const price=o.price_text || (o.price_value!=null?`${o.price_value} ₪`:'—');
+    const link=o.product_url?`<a class="offer-link" href="${o.product_url}" target="_blank" rel="noopener">לצפייה</a>`:'—';
+    const topRow=(Number(o.row)||99)<=2;
+    return `<tr>
+      <td>${o.date||latest.date||'—'}</td>
+      <td>${o.row??'—'}</td>
+      <td class="price ${topRow?'best':''}">${score}</td>
+      <td>${pref}</td>
+      <td class="rowhead">${o.company||'—'}${o.rating?` <span class="svc">⭐${o.rating}</span>`:''}</td>
+      <td class="rowhead" style="font-weight:400">${o.offer_text||'—'}</td>
+      <td>${o.category||'—'}</td>
+      <td class="price">${price}</td>
+      <td>${link}</td></tr>`;
+  }).join('');
+}
+
+function woltDailyMatrix(){
+  const woltAll=viewWolt();
+  const dates=woltAll.map(d=>d.date);
+  const map={};
+  woltAll.forEach(day=>(day.offers||[]).forEach(o=>{
+    const co=o.company||'לא ידוע';
+    const c=map[co]||(map[co]={byDate:{},total:0});
+    const s=offerScore(o.row);
+    c.byDate[day.date]=(c.byDate[day.date]||0)+s; c.total+=s;
+  }));
+  const companies=Object.entries(map).map(([co,c])=>({co,byDate:c.byDate,total:c.total})).sort((a,b)=>b.total-a.total);
+  return {dates, companies};
+}
+function renderWoltDaily(){
+  const thead=document.querySelector('#woltDailyTable thead');
+  const tbody=document.querySelector('#woltDailyTable tbody');
+  const {dates,companies}=woltDailyMatrix();
+  thead.innerHTML=`<tr><th>מסעדה</th>${dates.map(d=>`<th>${d}</th>`).join('')}<th>סה"כ</th></tr>`;
+  if(!companies.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${dates.length+2}">אין נתונים עדיין</td></tr>`; return; }
+  tbody.innerHTML=companies.map((c,i)=>`<tr>
+    <td class="rowhead">${i===0?'🏆 ':''}${c.co}</td>
+    ${dates.map(d=>`<td class="price">${c.byDate[d]||'—'}</td>`).join('')}
+    <td class="price ${i===0?'best':''}">${c.total}</td></tr>`).join('');
+}
+function renderWoltHistory(){
+  const woltAll=viewWolt();
+  const thead=document.querySelector('#woltHistTable thead');
+  const tbody=document.querySelector('#woltHistTable tbody');
+  const cols=['מסעדה','ניקוד מצטבר','מס\' הופעות','ניקוד אחרון','הופעות אחרונות','ימים'];
+  thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
+  const agg={};
+  woltAll.forEach(day=>(day.offers||[]).forEach(o=>{
+    const co=o.company||'לא ידוע';
+    const a=agg[co]||(agg[co]={score:0,ads:0,days:new Set()});
+    a.score+=offerScore(o.row); a.ads++; a.days.add(day.date);
+  }));
+  const lastScore={}, lastAds={};
+  if(woltAll.length){ (woltAll[woltAll.length-1].offers||[]).forEach(o=>{ const co=o.company||'לא ידוע';
+    lastScore[co]=(lastScore[co]||0)+offerScore(o.row); lastAds[co]=(lastAds[co]||0)+1; }); }
+  const rows=Object.entries(agg).map(([co,a])=>({co,score:a.score,ads:a.ads,days:a.days.size,
+    last:lastScore[co]||0,lastAds:lastAds[co]||0})).sort((x,y)=>y.score-x.score);
+  if(!rows.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין היסטוריה עדיין</td></tr>`; return; }
+  tbody.innerHTML=rows.map((r,i)=>`<tr>
+    <td class="rowhead">${i===0?'🏆 ':''}${r.co}</td>
+    <td class="price ${i===0?'best':''}">${r.score}</td>
+    <td>${r.ads}</td>
+    <td class="price">${r.last||'—'}</td>
+    <td>${r.lastAds||'—'}</td>
+    <td>${r.days}</td></tr>`).join('');
+}
+window.exportWoltExcel=function(){
+  const woltAll=viewWolt();
+  if(!woltAll.length){ alert('אין נתוני וולט לייצוא'); return; }
+  const wb=XLSX.utils.book_new();
+  const latest=woltAll[woltAll.length-1];
+  const oHead=['תאריך','שורה','ניקוד','מבצע','מסעדה','דירוג','הצעה','קטגוריה','מחיר','קישור'];
+  const oRows=[oHead];
+  (latest?.offers||[]).slice().sort((a,b)=>offerScore(b.row)-offerScore(a.row)||(a.position??1e9)-(b.position??1e9))
+    .forEach(o=>oRows.push([o.date||latest.date,o.row??'',offerScore(o.row),o.is_preferred?'כן':'',
+      o.company||'',o.rating||'',o.offer_text||'',o.category||'',o.price_text||(o.price_value??''),o.product_url||'']));
+  const ws1=XLSX.utils.aoa_to_sheet(oRows);
+  ws1['!cols']=[{wch:11},{wch:6},{wch:7},{wch:7},{wch:22},{wch:7},{wch:34},{wch:10},{wch:12},{wch:40}];
+  XLSX.utils.book_append_sheet(wb,ws1,'מסעדות');
+  const {dates,companies}=woltDailyMatrix();
+  const dRows=[['מסעדה',...dates,'סה"כ']];
+  companies.forEach(c=>dRows.push([c.co,...dates.map(d=>c.byDate[d]||0),c.total]));
+  const ws2=XLSX.utils.aoa_to_sheet(dRows); ws2['!cols']=dRows[0].map((_,i)=>({wch:i===0?22:11}));
+  XLSX.utils.book_append_sheet(wb,ws2,'ניקוד יומי');
+  const lastDate=woltAll.length?woltAll[woltAll.length-1].date:null;
+  const cRows=[['מסעדה','ניקוד מצטבר','מס\' הופעות','ניקוד אחרון','הופעות אחרונות','ימים']];
+  companies.forEach(c=>{
+    const days=new Set(); let ads=0,ls=0,la=0;
+    woltAll.forEach(day=>(day.offers||[]).forEach(o=>{ if((o.company||'לא ידוע')===c.co){ ads++; days.add(day.date);
+      if(day.date===lastDate){ ls+=offerScore(o.row); la++; } }}));
+    cRows.push([c.co,c.total,ads,ls,la,days.size]);
+  });
+  const ws3=XLSX.utils.aoa_to_sheet(cRows); ws3['!cols']=[{wch:22},{wch:14},{wch:12},{wch:12},{wch:14},{wch:8}];
+  XLSX.utils.book_append_sheet(wb,ws3,'ניקוד מצטבר');
+  XLSX.writeFile(wb,`wolt_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
+
 // ---- excel export (comparison) ----------------------------------------------
 window.exportExcel=function(){
   const history=viewHistory();
@@ -698,9 +837,9 @@ window.runScrape=async function(){
     for(let i=0;i<24;i++){
       await new Promise(res=>setTimeout(res,15000));
       log.textContent=`בודק אם העדכון הסתיים… (${i+1}/24)`;
-      const {hist,status,ppAll:freshPP,branchAll:freshBr}=await loadData();
+      const {hist,status,ppAll:freshPP,woltAll:freshWo,branchAll:freshBr}=await loadData();
       const fresh=hist[hist.length-1];
-      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppAll=freshPP;branchAll=freshBr||[];renderAll();
+      if(fresh&&fresh.timestamp!==prevTs){ history=hist;statusDoc=status;ppAll=freshPP;woltAll=freshWo||[];branchAll=freshBr||[];renderAll();
         log.textContent='העדכון הסתיים בהצלחה!'; return finishRefresh(true); }
     }
     log.textContent='העדכון עדיין רץ — נסו לרענן את הדף בעוד כמה דקות.'; finishRefresh(false);
@@ -725,7 +864,7 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderBranches(); }
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); }
 
 async function init(){
   initTabs();
@@ -743,11 +882,11 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,branchAll:br}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; branchAll=br||[];
+  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[];
 
   // prefill custom-range inputs with the data's date bounds
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   if(allDates.length){ dateFrom.value=allDates[0]; dateTo.value=allDates[allDates.length-1]; }
 
   const last=history[history.length-1];

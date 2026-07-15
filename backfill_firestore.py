@@ -13,7 +13,9 @@ from pathlib import Path
 
 import firestore_sync
 
-OFFERS_FILE = Path(__file__).parent / "data" / "paisplus" / "offers.json"
+ROOT = Path(__file__).parent
+OFFERS_FILE = ROOT / "data" / "paisplus" / "offers.json"
+WOLT_FILE = ROOT / "data" / "wolt_offers.json"
 
 
 def group_by_date(offers):
@@ -27,19 +29,25 @@ def main():
     if not firestore_sync.is_enabled():
         print("Firestore not enabled (no credentials) — nothing to backfill.")
         return
-    if not OFFERS_FILE.exists():
-        print(f"{OFFERS_FILE} not found.")
-        return
 
-    offers = json.load(open(OFFERS_FILE, encoding="utf-8-sig"))
-    by_date = group_by_date(offers)
-    n = 0
-    for date, day_offers in sorted(by_date.items()):
-        if not date:
-            continue
-        if firestore_sync.push_paisplus_offers(day_offers, date=date):
+    # Pais Plus offers
+    if OFFERS_FILE.exists():
+        by_date = group_by_date(json.load(open(OFFERS_FILE, encoding="utf-8-sig")))
+        n = sum(1 for date, day in sorted(by_date.items())
+                if date and firestore_sync.push_paisplus_offers(day, date=date))
+        print(f"Backfilled {n} Pais Plus date(s).")
+
+    # Wolt offers (same shape) → wolt_offers collection
+    if WOLT_FILE.exists():
+        db = firestore_sync.get_client()
+        by_date = group_by_date(json.load(open(WOLT_FILE, encoding="utf-8-sig")))
+        n = 0
+        for date, day in sorted(by_date.items()):
+            if not date:
+                continue
+            db.collection("wolt_offers").document(date).set({"date": date, "offers": day})
             n += 1
-    print(f"Backfilled {n} Pais Plus date(s) into Firestore.")
+        print(f"Backfilled {n} Wolt date(s).")
 
 
 if __name__ == "__main__":

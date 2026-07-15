@@ -1,240 +1,227 @@
 """
-Wolt pizza-price scraper (5th site).
+Wolt pizza-discovery scraper.
 
-Wolt is a delivery *aggregator*, not a pizzeria, so there is no single "Wolt
-pizza price". This scraper tracks ONE specific Wolt venue (restaurant) that you
-choose, and extracts the same three comparison price points as the other
-chains:
-    family      – cheapest family/large pizza
-    meal_single – cheapest single-pizza meal deal
-    meal_double – cheapest two-pizza meal deal
+Loads the Wolt "pizza" category discovery page for a Tel Aviv location and
+extracts the RANKED list of pizza venues (sort_by=recommended). Each venue is
+mapped to the SAME record shape as the Pais Plus offers, so the dashboard's
+Wolt tab can mirror the Pais Plus tab (offers table + daily score matrix +
+cumulative history), with the same row-based scoring.
 
-Wolt shows a single price (no pickup/delivery split at the menu level), so the
-result is stored under `dlv` and `pu` is left empty — consistent with how the
-dashboard treats single-price sites.
+Location: Wolt honours a geolocation override, so we set the browser location
+to central Tel Aviv (Dizengoff area) — no manual address entry needed.
 
-Configuration (env vars, so it works both locally and on GitHub Actions):
-    WOLT_VENUE_URL   full URL of the Wolt venue menu page to track, e.g.
-                     https://wolt.com/he/isr/tel-aviv/restaurant/<slug>
-    WOLT_ADDRESS     (optional) delivery address to set, default Tel Aviv ref.
+Like Pais Plus, this may only work from an Israeli IP (Wolt geo-detects); on a
+US CI runner it may be blocked. Detected blocks are reported, not bypassed.
 
-Wolt's old public REST API (restaurant-api.wolt.com/v1) now returns 430/429, so
-we drive a real browser and intercept the menu JSON the page itself requests
-from consumer-api.wolt.com. Anti-bot pages (Cloudflare / queue) are DETECTED
-and reported as a failure for this site only — never bypassed.
+Output: data/wolt_offers.json (history) + Firestore wolt_offers/{date}.
 """
 
-import os
+import json
 import re
-import sys
 import time
 from pathlib import Path
 from datetime import datetime
 
 from playwright.sync_api import sync_playwright, TimeoutError as PWTimeout
 
-# reuse the shared classification helpers from the main scraper
-from multi_scraper import (
-    classify_prices, pick_price, UA, TLV_ADDRESS,
-    _empty_prices, kw_match, FAMILY_KW, MEAL_KW, SINGLE_KW, DOUBLE_KW,
+from multi_scraper import UA  # also sets UTF-8 stdout on Windows
+
+DATA_FILE = Path(__file__).parent / "data" / "wolt_offers.json"
+SHOT_DIR = Path(__file__).parent / "data"
+
+DISCOVERY_URL = (
+    "https://wolt.com/he/discovery/stores/category/pizza"
+    "?rootCategory=%7B%22name%22%3A%22%D7%9E%D7%A1%D7%A2%D7%93%D7%95%D7%AA%22%2C%22slug%22%3A%22restaurants%22%7D"
+    "&subCategoryPath=%5B%7B%22name%22%3A%22%D7%A4%D7%99%D7%A6%D7%94%22%2C%22slug%22%3A%22pizza%22%7D%5D"
+    "&sort_by=recommended"
 )
+# Central Tel Aviv (Dizengoff area) — the reference location.
+TLV_LAT, TLV_LON = 32.0809, 34.7806
 
-DEBUG_DIR = Path(__file__).parent / "data"
-STEALTH_JS = ("Object.defineProperty(navigator,'webdriver',{get:()=>undefined}); "
-              "window.chrome={runtime:{}};")
+BLOCK_MARKERS = ["just a moment", "cloudflare", "attention required", "verifying you are human"]
 
-# Signs that Wolt served an anti-bot / verification page instead of the venue.
-BLOCK_MARKERS = [
-    "verifying you are human", "just a moment", "cf-challenge", "cloudflare",
-    "attention required", "אימות", "רובוט", "queue-it", "please verify",
-]
-
-
-def _normalize_price(v):
-    """Wolt embeds prices as integer minor units (agorot): 6900 -> 69.0."""
-    if v is None:
-        return None
-    if isinstance(v, (int, float)):
-        p = float(v)
-    else:
-        m = re.search(r"\d+(?:\.\d{1,2})?", str(v).replace(",", ""))
-        if not m:
-            return None
-        p = float(m.group())
-    # Menu API values are in agorot; convert when clearly too large.
-    if p > 800:
-        p = round(p / 100, 2)
-    return p if 10 < p < 800 else None
+# JS that returns one object per venue card: href, y (for row clustering), lines.
+_EXTRACT_JS = r"""
+() => {
+  const seen = new Set();
+  const out = [];
+  document.querySelectorAll('a[href*="/restaurant/"]').forEach(a => {
+    const href = a.getAttribute('href') || '';
+    const slug = href.split('/restaurant/')[1] || href;
+    if (seen.has(slug)) return;
+    seen.add(slug);
+    const card = a.closest('[data-test-id]') || a;
+    const rect = card.getBoundingClientRect();
+    const lines = (card.innerText || '').split('\n').map(s => s.trim()).filter(Boolean);
+    out.push({ slug, href, y: Math.round(rect.top + window.scrollY), lines });
+  });
+  return out;
+}
+"""
 
 
-def _extract_items(obj, out=None):
-    """
-    Walk Wolt menu JSON collecting (name, price) pairs. Wolt item objects look
-    like {"name": "...", "baseprice": 6900, ...} or {"name","price"} depending
-    on the endpoint, so we accept several price keys.
-    """
-    if out is None:
-        out = []
-    PRICE_KEYS = ("baseprice", "base_price", "price", "unit_price")
-    if isinstance(obj, dict):
-        name = obj.get("name") or obj.get("title")
-        price = None
-        for k in PRICE_KEYS:
-            if k in obj and obj[k] is not None:
-                price = obj[k]
-                break
-        if isinstance(name, dict):  # localized {"lang":"...","value":"..."}
-            name = name.get("value") or name.get("he") or next(iter(name.values()), "")
-        if name and price is not None:
-            np = _normalize_price(price)
-            if np is not None:
-                out.append((np, str(name)))
-        for v in obj.values():
-            _extract_items(v, out)
-    elif isinstance(obj, list):
-        for it in obj:
-            _extract_items(it, out)
-    return out
+def _parse_card(c):
+    """Map a raw card {slug, href, y, lines} to a Pais-Plus-shaped offer."""
+    lines = c.get("lines", [])
+    name = lines[0] if lines else ""
+    rating = fee = promo = None
+    items = []
+    for l in lines[1:]:
+        if "מחיר:" in l:
+            m = re.search(r"(\d+(?:\.\d+)?)", l.split("מחיר:")[-1])
+            if m:
+                items.append((float(m.group(1)), l.split("מחיר:")[0].strip()))
+        elif re.fullmatch(r"\d(?:\.\d)?", l):        # rating e.g. 9.0 / 8
+            rating = l
+        elif re.fullmatch(r"[\d.]+\s*₪", l):          # delivery fee e.g. "0.00 ₪"
+            fee = l
+        elif ("הנחה" in l) or ("הטבה" in l) or ("%" in l):
+            promo = l
+    cheapest = min(items, key=lambda x: x[0]) if items else (None, "")
+    price_value, cheapest_item = cheapest
+    offer_text = promo or cheapest_item or name
+    return {
+        "slug": c.get("slug"),
+        "name": name,
+        "rating": rating,
+        "delivery_fee": fee,
+        "promo": promo,
+        "price_value": price_value,
+        "cheapest_item": cheapest_item,
+        "product_url": ("https://wolt.com" + c["href"]) if c.get("href", "").startswith("/") else c.get("href"),
+        "is_preferred": bool(promo),
+        "y": c.get("y", 0),
+    }
 
 
-def scrape_wolt(pw=None, venue_url=None, verbose=True):
-    """
-    Scrape one Wolt venue. Returns the standard chain dict:
-        {"pu": {...}, "dlv": {...}, "error": <str|None>}
-    """
-    venue_url = venue_url or os.environ.get("WOLT_VENUE_URL", "").strip()
-    r = {"pu": _empty_prices(), "dlv": _empty_prices(), "error": None}
+def run_scrape(verbose=True):
+    now = datetime.now()
+    today = now.strftime("%Y-%m-%d")
+    ts = now.strftime("%Y-%m-%d %H:%M:%S")
+    offers = []
+    error = None
 
-    if not venue_url:
-        r["error"] = "לא הוגדר WOLT_VENUE_URL (יש לבחור מסעדה ספציפית בוולט)"
-        if verbose:
-            print(f"    [WOLT] skipped: {r['error']}")
-        return r
-
-    owns_pw = pw is None
-    if owns_pw:
-        pw = sync_playwright().start()
-
-    menu_blobs = []
-
-    def on_response(resp):
-        try:
-            url = resp.url
-            if "wolt.com" in url and any(k in url.lower()
-                                         for k in ("assortment", "menu", "venue")):
-                ct = (resp.headers or {}).get("content-type", "")
-                if "application/json" in ct:
-                    menu_blobs.append(resp.json())
-        except Exception:
-            pass
-
-    browser = ctx = page = None
-    try:
+    with sync_playwright() as pw:
         browser = pw.chromium.launch(
             channel="chrome", headless=True,
-            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"],
-        )
+            args=["--disable-blink-features=AutomationControlled", "--no-sandbox"])
         ctx = browser.new_context(
-            locale="he-IL", timezone_id="Asia/Jerusalem",
-            viewport={"width": 1440, "height": 900}, user_agent=UA,
-            extra_http_headers={"Accept-Language": "he-IL,he;q=0.9"},
-        )
-        ctx.add_init_script(STEALTH_JS)
+            locale="he-IL", timezone_id="Asia/Jerusalem", viewport={"width": 1440, "height": 1000},
+            user_agent=UA, geolocation={"latitude": TLV_LAT, "longitude": TLV_LON},
+            permissions=["geolocation"])
+        ctx.add_init_script("Object.defineProperty(navigator,'webdriver',{get:()=>undefined});")
         page = ctx.new_page()
-        page.on("response", on_response)
-
-        last_err = None
-        for attempt in range(3):  # retry with backoff
-            try:
-                page.goto(venue_url, timeout=45000, wait_until="domcontentloaded")
-                page.wait_for_timeout(4000 + attempt * 2000)
-
-                body_text = (page.inner_text("body") or "").lower()
-                if any(m in body_text for m in BLOCK_MARKERS) and not menu_blobs:
-                    r["error"] = "האתר חסם גישה אוטומטית — נדרשת בדיקה ידנית"
-                    _screenshot(page, "wolt_blocked")
-                    if verbose:
-                        print(f"    [WOLT] blocked (attempt {attempt+1})")
-                    time.sleep(3 * (attempt + 1))
-                    continue
-
-                # Nudge lazy-loaded menu sections into view.
-                for _ in range(6):
-                    page.mouse.wheel(0, 1600)
-                    page.wait_for_timeout(700)
-
-                if menu_blobs:
+        raw = []
+        try:
+            for attempt in range(3):
+                page.goto(DISCOVERY_URL, timeout=60000, wait_until="domcontentloaded")
+                page.wait_for_timeout(6000 + attempt * 2000)
+                body = (page.inner_text("body") or "").lower()
+                if any(m in body for m in BLOCK_MARKERS):
+                    error = "האתר חסם גישה אוטומטית — נדרשת בדיקה ידנית"
+                    _shot(page, "wolt_blocked")
+                    time.sleep(3 * (attempt + 1)); continue
+                # The list lazy-loads / virtualizes, so accumulate cards by slug
+                # across scroll steps (first sighting keeps its absolute Y).
+                acc = {}
+                stagnant = 0
+                for _ in range(120):
+                    for c in page.evaluate(_EXTRACT_JS):
+                        if c["slug"] not in acc:
+                            acc[c["slug"]] = c
+                    before = len(acc)
+                    page.mouse.wheel(0, 1400)
+                    page.wait_for_timeout(650)
+                    for c in page.evaluate(_EXTRACT_JS):
+                        if c["slug"] not in acc:
+                            acc[c["slug"]] = c
+                    stagnant = stagnant + 1 if len(acc) == before else 0
+                    if stagnant >= 6:   # no new venues for several scrolls → done
+                        break
+                raw = sorted(acc.values(), key=lambda c: c["y"])
+                if raw:
+                    error = None
                     break
-                last_err = "menu JSON not captured"
+                error = "לא נמצאו מסעדות בעמוד"
                 time.sleep(2 * (attempt + 1))
-            except PWTimeout as e:
-                last_err = f"timeout: {str(e)[:80]}"
-                time.sleep(3 * (attempt + 1))
-            except Exception as e:
-                last_err = str(e)[:100]
-                time.sleep(2 * (attempt + 1))
-
-        # Parse whatever menu JSON we captured.
-        pairs = []
-        for blob in menu_blobs:
-            pairs.extend(_extract_items(blob))
-
-        # Fallback: parse the rendered DOM if no JSON was intercepted.
-        if not pairs:
-            pairs = _parse_dom(page)
-
-        if pairs:
-            r["dlv"].update(classify_prices(pairs))
-            if verbose:
-                print(f"    [WOLT] parsed {len(pairs)} items → {r['dlv']}")
-            if all(v is None for v in r["dlv"].values()):
-                r["error"] = "מחירים נמצאו אך לא סווגו לקטגוריות (בדוק מיפוי)"
-        elif not r["error"]:
-            r["error"] = last_err or "לא נמצאו מחירים בעמוד"
-            _screenshot(page, "wolt_nomenu")
-
-    except Exception as e:
-        r["error"] = str(e)[:120]
-        if page:
-            _screenshot(page, "wolt_error")
-    finally:
-        if browser:
+        except PWTimeout as e:
+            error = f"timeout: {str(e)[:80]}"
+            _shot(page, "wolt_error")
+        except Exception as e:
+            error = str(e)[:120]
+            _shot(page, "wolt_error")
+        finally:
             browser.close()
-        if owns_pw:
-            pw.stop()
 
-    return r
-
-
-def _parse_dom(page):
-    """Best-effort DOM fallback: grab (name, price) from menu item cards."""
-    try:
-        items = page.evaluate("""() => {
-            const out = [];
-            document.querySelectorAll('[data-test-id*="menu-item"], [class*="MenuItem"], article, li').forEach(el => {
-                const t = (el.innerText || '').trim();
-                if (t && /\\d/.test(t) && t.length < 200) out.push(t);
-            });
-            return out;
-        }""")
-        pairs = []
-        for line in items or []:
-            p = _normalize_price(line)
-            if p is not None:
-                pairs.append((p, line))
-        return pairs
-    except Exception:
+    if not raw:
+        if verbose:
+            print(f"  ⚠ 0 מסעדות נסרקו — {error or 'לא ידוע'} (שומר על הנתונים הקיימים)")
         return []
 
+    # Cluster into visual rows by Y (tolerant), like the Pais Plus scraper.
+    parsed = [_parse_card(c) for c in raw]
+    ys = sorted(set(round(p["y"] / 60) * 60 for p in parsed))
+    row_of = {y: i + 1 for i, y in enumerate(ys)}
 
-def _screenshot(page, name):
+    for i, p in enumerate(parsed):
+        offers.append({
+            "date": today, "timestamp": ts,
+            "position": i + 1,
+            "row": row_of[round(p["y"] / 60) * 60],
+            "id": p["slug"],
+            "company": p["name"] or "—",
+            "offer_text": p["promo"] or p["cheapest_item"] or p["name"] or "—",
+            "category": "פיצה",
+            "rating": p["rating"],
+            "delivery_fee": p["delivery_fee"],
+            "price_text": (f'{p["price_value"]:.0f} ₪' if p["price_value"] is not None else (p["delivery_fee"] or "")),
+            "price_value": p["price_value"],
+            "is_preferred": p["is_preferred"],
+            "product_url": p["product_url"],
+        })
+        if verbose and i < 8:
+            print(f"  [{i+1}] row{offers[-1]['row']} {p['name']}"
+                  + (f" ⭐{p['rating']}" if p['rating'] else "")
+                  + (f" · {p['promo']}" if p['promo'] else ""))
+
+    if verbose:
+        print(f"\n  נמצאו {len(offers)} מסעדות פיצה בוולט")
+
+    # Save local history (replace today's rows, keep the rest).
+    history = []
+    if DATA_FILE.exists():
+        with open(DATA_FILE, encoding="utf-8-sig") as f:
+            history = json.load(f)
+    history = [h for h in history if h.get("date") != today]
+    history.extend(offers)
+    history.sort(key=lambda h: (h["date"], h["position"]))
+    DATA_FILE.parent.mkdir(parents=True, exist_ok=True)
+    with open(DATA_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+    if verbose:
+        print(f"  נשמרו → {DATA_FILE}")
+
+    # Push to Firestore (no-op without credentials).
     try:
-        DEBUG_DIR.mkdir(parents=True, exist_ok=True)
-        page.screenshot(path=str(DEBUG_DIR / f"{name}.png"))
+        import firestore_sync
+        if firestore_sync.is_enabled():
+            db = firestore_sync.get_client()
+            db.collection("wolt_offers").document(today).set({"date": today, "offers": offers})
+            print("  Synced Wolt → Firestore ✓")
+    except Exception as e:
+        if verbose:
+            print(f"  Firestore sync skipped: {e}")
+
+    return offers
+
+
+def _shot(page, name):
+    try:
+        SHOT_DIR.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(SHOT_DIR / f"{name}.png"))
     except Exception:
         pass
 
 
 if __name__ == "__main__":
-    res = scrape_wolt()
-    print("\nWolt result:", res)
+    run_scrape()

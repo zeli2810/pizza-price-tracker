@@ -1062,16 +1062,8 @@ def run_scrape(verbose=True):
         entry["chains"]["papajohns"] = pj
         if verbose: _log(pj, "פאפא ג'ונס")
 
-        # Wolt — one configurable venue (only runs if WOLT_VENUE_URL is set)
-        if os.environ.get("WOLT_VENUE_URL", "").strip():
-            if verbose: print("  וולט (Playwright)...")
-            try:
-                import wolt_scraper
-                wolt = wolt_scraper.scrape_wolt(pw, verbose=verbose)
-            except Exception as e:
-                wolt = {"pu": _empty_prices(), "dlv": _empty_prices(), "error": str(e)[:120]}
-            entry["chains"]["wolt"] = wolt
-            if verbose: _log(wolt, "וולט")
+    # (Wolt is now its own discovery-based tracker — see wolt_scraper.py — not
+    #  part of the menu-price comparison.)
 
     # Save locally (JSON mirror / backup + local dev)
     history = load_history()
