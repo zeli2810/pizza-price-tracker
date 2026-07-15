@@ -21,7 +21,7 @@
 Actions** — חינם, אמין, ועם דפדפן אמיתי. Firebase מארח את הדשבורד ושומר את הנתונים:
 
 ```
-┌─────────────────────┐   scrape יומי 14:00     ┌──────────────────────┐
+┌─────────────────────┐   scrape יומי 17:00     ┌──────────────────────┐
 │   GitHub Actions     │ ──────────────────────▶ │  Firestore (Firebase)│
 │  (Playwright scrape)  │   כותב via admin SDK    │   price_history/*     │
 │  multi_scraper.py     │                          │   paisplus_offers/*   │
@@ -60,8 +60,8 @@ pizza_tracker/
 ├── .firebaserc              # מזהה הפרויקט (למלא!)
 ├── requirements.txt
 ├── .github/workflows/
-│   ├── scrape.yml           # cron יומי 14:00 + רענון ידני (דומינוס/האט/פאפא/וולט)
-│   ├── scrape_paisplus.yml  # cron יומי 10:00 (פייס פלוס)
+│   ├── scrape.yml           # cron יומי 17:00 + רענון ידני (דומינוס/האט/פאפא + סניפים)
+│   ├── scrape_paisplus.yml  # cron יומי 17:00 (פייס פלוס + וולט)
 │   └── deploy_firebase.yml  # פריסת הדשבורד ל-Hosting
 └── data/                    # גיבוי JSON + צילומי מסך לדיבאג
 ```
@@ -211,8 +211,8 @@ Firebase Hosting לא תומך ב-Basic Auth על תוכן סטטי. אם דרו
 ## 7️⃣ בדיקת התזמון וצפייה בלוגים
 
 - **תזמון**: הריצה היומית מוגדרת ב-`.github/workflows/scrape.yml`. cron ב-GitHub הוא
-  ב-UTC, ולכן מוגדרים שני טריגרים (11:00 ו-12:00 UTC) וצעד שמדלג על זה שאינו 14:00
-  בשעון ישראל — כך רצה בדיוק ריצה אחת ב-14:00 מקומי, גם בקיץ וגם בחורף.
+  ב-UTC, ולכן מוגדרים שני טריגרים (14:00 ו-15:00 UTC) וצעד שמדלג על זה שאינו 17:00
+  בשעון ישראל — כך רצה בדיוק ריצה אחת ב-17:00 מקומי, גם בקיץ וגם בחורף.
 - **צפייה בלוגים**: GitHub → לשונית **Actions** → בחר את ה-workflow → בחר ריצה →
   ראה את פלט השלב *Run scraper* (כולל כמה מחירים נאספו וסטטוס Firestore).
 - **בדיקה ידנית מיידית**: Actions → *Daily Pizza Price Scrape* → **Run workflow**.
