@@ -153,9 +153,14 @@ def run_scrape(verbose=True):
         finally:
             browser.close()
 
-    if not raw:
+    # A real Tel Aviv pizza discovery always has 100+ venues. A much smaller
+    # result means Wolt served a degraded/geo-limited view (e.g. from a US CI
+    # runner) — treat it like a block and DON'T overwrite the good data.
+    MIN_VENUES = 40
+    if len(raw) < MIN_VENUES:
         if verbose:
-            print(f"  ⚠ 0 מסעדות נסרקו — {error or 'לא ידוע'} (שומר על הנתונים הקיימים)")
+            print(f"  ⚠ רק {len(raw)} מסעדות נסרקו (< {MIN_VENUES}) — כנראה תצוגה חסומה/מוגבלת; "
+                  f"שומר על הנתונים הקיימים ולא דורס.")
         return []
 
     # Cluster into visual rows by Y (tolerant), like the Pais Plus scraper.
