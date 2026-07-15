@@ -47,6 +47,9 @@ _EXTRACT_JS = r"""
   const out = [];
   document.querySelectorAll('a[href*="/restaurant/"]').forEach(a => {
     const href = a.getAttribute('href') || '';
+    // Israel only — Wolt venue links are /he/isr/<city>/restaurant/... ; a
+    // foreign (e.g. US) result from a wrong-IP run won't contain "/isr/".
+    if (!href.includes('/isr/')) return;
     const slug = href.split('/restaurant/')[1] || href;
     if (seen.has(slug)) return;
     seen.add(slug);

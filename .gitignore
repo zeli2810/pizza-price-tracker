@@ -10,3 +10,5 @@ serviceAccount*.json
 *-service-account.json
 .firebase/
 firebase-debug.log
+
+run_daily.log
