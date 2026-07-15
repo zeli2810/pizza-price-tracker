@@ -8,10 +8,12 @@ Live-scraped (exact, daily):
   - Papa John's: /branch/ archive (same pattern; a real Chrome browser passes
                  the Akamai check).
   - Pizza Prego: /branch/ archive (same WordPress pattern).
+  - Pizza Shemesh: /סניפים/ text list (per-branch "סעו עם Waze" marker).
+  - Pizza Story: city <select> — iterate all cities and count branches
+                 (no Tel Aviv option → tlv=0).
 
-Manual fallback (until per-site scrapers are built):
-  - Pizza Shemesh (no public branch page) and Pizza Story (city list has no
-    Tel Aviv branch → tlv=0; total needs per-city iteration).
+All six are scraped live; the MANUAL dict below is only a safety fallback if a
+site is temporarily unreachable (the record is then tagged source="manual").
 
 Every record is tagged source = "scraped" | "manual".
 Output: data/branch_counts.json (history) + Firestore branch_counts/{date}.
@@ -134,6 +136,58 @@ def scrape_wp_branches(base_url, pw):
         browser.close()
 
 
+def scrape_shemesh_branches(pw):
+    """Pizza Shemesh /סניפים/ — a text list; each branch ends with 'סעו עם Waze'."""
+    url = "https://pizza-shemesh.co.il/%D7%A1%D7%A0%D7%99%D7%A4%D7%99%D7%9D/"
+    browser = pw.chromium.launch(channel="chrome", headless=True, args=["--no-sandbox"])
+    try:
+        ctx = browser.new_context(locale="he-IL", user_agent=UA, viewport={"width": 1400, "height": 1200})
+        page = ctx.new_page()
+        page.goto(url, timeout=45000, wait_until="domcontentloaded")
+        page.wait_for_timeout(5000)
+        for _ in range(6):
+            page.mouse.wheel(0, 3000); page.wait_for_timeout(400)
+        body = page.inner_text("body") or ""
+        # Each real branch block contains a kashrut line; footer/other blocks don't.
+        branches = [seg for seg in body.split("סעו עם Waze") if "כשרות" in seg]
+        if not branches:
+            return None
+        total = len(branches)
+        tlv = sum(1 for seg in branches if _is_tlv(seg))
+        return {"total": total, "tlv": tlv}
+    finally:
+        browser.close()
+
+
+def scrape_story_branches(pw):
+    """Pizza Story — a city <select>; iterate all cities and count branches."""
+    url = "https://pizza-story.co.il/?page_id=200"
+    browser = pw.chromium.launch(channel="chrome", headless=True, args=["--no-sandbox"])
+    try:
+        ctx = browser.new_context(locale="he-IL", user_agent=UA, viewport={"width": 1400, "height": 1400})
+        page = ctx.new_page()
+        page.goto(url, timeout=45000, wait_until="domcontentloaded")
+        page.wait_for_timeout(4000)
+        cities = page.eval_on_selector(
+            "select", "el=>[...el.options].map(o=>({v:o.value,t:o.text})).filter(o=>o.v)")
+        if not cities:
+            return None
+        total = tlv = 0
+        for o in cities:
+            try:
+                page.select_option("select", o["v"])
+                page.wait_for_timeout(1100)
+                n = (page.inner_text("body") or "").count("למידע נוסף")
+                total += n
+                if _is_tlv(o["t"]):
+                    tlv += n
+            except Exception:
+                pass
+        return {"total": total, "tlv": tlv} if total else None
+    finally:
+        browser.close()
+
+
 def load_history():
     if DATA_FILE.exists():
         with open(DATA_FILE, encoding="utf-8-sig") as f:
@@ -166,6 +220,20 @@ def run_scrape(verbose=True):
                     scraped[key] = r
             except Exception as e:
                 if verbose: print(f"  {CHAINS[key]} scrape failed: {e}")
+        # Pizza Shemesh — /סניפים/ text list
+        try:
+            r = scrape_shemesh_branches(pw)
+            if r and r["total"]:
+                scraped["shemesh"] = r
+        except Exception as e:
+            if verbose: print(f"  {CHAINS['shemesh']} scrape failed: {e}")
+        # Pizza Story — city <select> iteration
+        try:
+            r = scrape_story_branches(pw)
+            if r and r["total"]:
+                scraped["story"] = r
+        except Exception as e:
+            if verbose: print(f"  {CHAINS['story']} scrape failed: {e}")
 
     for key in CHAINS:
         if key in scraped:

@@ -1,7 +1,7 @@
 [
   {
     "date": "2026-07-15",
-    "timestamp": "2026-07-15 16:16:48",
+    "timestamp": "2026-07-15 19:27:42",
     "chains": {
       "dominos": {
         "total": 64,
@@ -20,13 +20,13 @@
       },
       "shemesh": {
         "total": 100,
-        "tlv": null,
-        "source": "manual"
+        "tlv": 5,
+        "source": "scraped"
       },
       "story": {
-        "total": 62,
+        "total": 63,
         "tlv": 0,
-        "source": "manual"
+        "source": "scraped"
       },
       "prego": {
         "total": 24,
