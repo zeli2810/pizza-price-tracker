@@ -141,11 +141,11 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div class="tbl-wrap">
       <table id="cmpTable"><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">★ = המחיר הזול ביותר בשורה · כתובת ייחוס: תל אביב · המחיר הזול "תפוח מול תפוח" בכל קטגוריה</p>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">★ = המחיר הזול ביותר בשורה · כתובת ייחוס: תל אביב · המחיר הזול "תפוח מול תפוח" בכל קטגוריה<br>~ = <b>משלוח דומינוס הוא הערכה</b>: מחיר האיסוף × 1.25 (דומינוס אינה חושפת מחירי משלוח לסריקה; התוספת ~25% נצפתה כקבועה).</p>
   </section>
 
   <section>
-    <h2>היסטוריה יומית <span style="font-size:.75rem;color:var(--muted);font-weight:400">· נצברת מדי יום · ⬇ בכל שורה = שליפת אותו יום</span></h2>
+    <h2>היסטוריה יומית <span style="font-size:.75rem;color:var(--muted);font-weight:400">· נצברת מדי יום · ⬇ בכל שורה = שליפת אותו יום · ~ משלוח דומינוס = הערכה (איסוף×1.25)</span></h2>
     <div class="tbl-wrap">
       <table id="rawTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
@@ -259,11 +259,29 @@ function viewPpAll(){ return ppAll.filter(d=>inRange(d.date)); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
+// Domino's doesn't expose delivery prices to scraping; per decision we ESTIMATE
+// delivery as pickup × this factor (observed to match Domino's ~25% markup).
+const DOMINOS_DLV_FACTOR = 1.25;
+
 function priceOf(entry, site, prodKey, svcKey){
   const c = entry.chains?.[site.key];
   if(!c) return null;
-  if(site.split) return c[svcKey]?.[prodKey] ?? null;
+  if(site.split){
+    let v = c[svcKey]?.[prodKey] ?? null;
+    if(v==null && site.key==='dominos' && svcKey==='dlv'){
+      const pu = c.pu?.[prodKey];
+      if(pu!=null) v = Math.round(pu*DOMINOS_DLV_FACTOR*10)/10;
+    }
+    return v;
+  }
   return (c.dlv?.[prodKey] ?? c.pu?.[prodKey] ?? null);
+}
+
+// True when a value is the Domino's delivery estimate (raw delivery missing).
+function isDomDlvEstimate(entry, site, prodKey, svcKey){
+  if(site.key!=='dominos' || svcKey!=='dlv') return false;
+  const c = entry.chains?.[site.key];
+  return !!c && (c.dlv?.[prodKey]==null) && (c.pu?.[prodKey]!=null);
 }
 
 // ---- data loading ------------------------------------------------------------
@@ -365,10 +383,12 @@ function renderComparison(){
       const vals=SITES.map(s=> s.split||sv.key!=='pu' ? priceOf(last,s,p.key,sv.key) : null);
       const present=vals.filter(v=>v!=null);
       const best=present.length?Math.min(...present):null;
-      const cells=vals.map(v=>{
+      const cells=SITES.map((s,i)=>{
+        const v=vals[i];
         if(v==null) return `<td class="price">—</td>`;
         const isBest=best!=null&&Math.abs(v-best)<1e-9;
-        return `<td class="price ${isBest?'best':''}">${fmt(v)}</td>`;
+        const est=isDomDlvEstimate(last,s,p.key,sv.key);
+        return `<td class="price ${isBest?'best':''}"${est?' title="הערכה: מחיר איסוף × 1.25"':''}>${est?'~':''}${fmt(v)}</td>`;
       }).join('');
       rows.push(`<tr><td class="rowhead">${p.label} <span class="svc">${sv.label}</span></td>${cells}</tr>`);
     }
@@ -394,7 +414,9 @@ function renderRaw(){
   tbody.innerHTML=[...history].reverse().map(e=>{
     const cells=RAW_COLS.map(c=>{
       if(c.branches){ const n=e.chains?.[c.site.key]?.branch_count; return `<td>${n!=null?n:'—'}</td>`; }
-      return `<td class="price">${fmt(priceOf(e,c.site,c.prod.key,c.svc.key))}</td>`;
+      const v=priceOf(e,c.site,c.prod.key,c.svc.key);
+      const est=isDomDlvEstimate(e,c.site,c.prod.key,c.svc.key);
+      return `<td class="price"${est?' title="הערכה: איסוף × 1.25"':''}>${v==null?'—':(est?'~':'')+fmt(v)}</td>`;
     }).join('');
     return `<tr><td class="rowhead">${e.date} <button class="daybtn" title="שליפת ${e.date} לאקסל" onclick="exportDay('${e.date}')">⬇</button></td>${cells}</tr>`;
   }).join('');
