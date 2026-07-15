@@ -280,7 +280,7 @@
   },
   {
     "date": "2026-07-15",
-    "timestamp": "2026-07-15 06:21:51",
+    "timestamp": "2026-07-15 15:57:14",
     "chains": {
       "pizzahut": {
         "pu": {
@@ -298,16 +298,17 @@
       },
       "dominos": {
         "pu": {
-          "family": null,
-          "meal_single": null,
-          "meal_double": null
+          "family": 58.3,
+          "meal_single": 68.0,
+          "meal_double": 96.0
         },
         "dlv": {
           "family": null,
           "meal_single": null,
           "meal_double": null
         },
-        "error": " | כל הסניפים סגורים"
+        "error": null,
+        "branch_count": 64
       },
       "papajohns": {
         "pu": {
