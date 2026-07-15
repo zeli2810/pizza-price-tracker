@@ -478,28 +478,31 @@ function renderPaisplusHistory(){
   const ppAll=viewPpAll();
   const thead=document.querySelector('#ppHistTable thead');
   const tbody=document.querySelector('#ppHistTable tbody');
-  const cols=['חברה','ניקוד מצטבר','הופעות','ימים','ניקוד אחרון'];
+  // Each score sits next to the number of ads that produced it.
+  const cols=['חברה','ניקוד מצטבר','מס\' מודעות','ניקוד אחרון','מודעות אחרונות','ימים'];
   thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
-  const agg={};  // company -> {score, appearances, days:Set}
+  const agg={};  // company -> {score, ads(count), days:Set}
   ppAll.forEach(day=>{
     (day.offers||[]).forEach(o=>{
       const co=o.company||'לא ידוע';
-      const a=agg[co]||(agg[co]={score:0,appearances:0,days:new Set()});
-      a.score+=offerScore(o.row); a.appearances++; a.days.add(day.date);
+      const a=agg[co]||(agg[co]={score:0,ads:0,days:new Set()});
+      a.score+=offerScore(o.row); a.ads++; a.days.add(day.date);
     });
   });
-  // "last score" = sum of a company's scores on the most recent date
-  const lastByCo={};
-  if(ppAll.length){ (ppAll[ppAll.length-1].offers||[]).forEach(o=>{ const co=o.company||'לא ידוע'; lastByCo[co]=(lastByCo[co]||0)+offerScore(o.row); }); }
-  const rows=Object.entries(agg).map(([co,a])=>({co,score:a.score,appearances:a.appearances,days:a.days.size,last:lastByCo[co]||0}))
-    .sort((x,y)=>y.score-x.score);
+  // most-recent day: score + number of ads per company
+  const lastScore={}, lastAds={};
+  if(ppAll.length){ (ppAll[ppAll.length-1].offers||[]).forEach(o=>{ const co=o.company||'לא ידוע';
+    lastScore[co]=(lastScore[co]||0)+offerScore(o.row); lastAds[co]=(lastAds[co]||0)+1; }); }
+  const rows=Object.entries(agg).map(([co,a])=>({co,score:a.score,ads:a.ads,days:a.days.size,
+    last:lastScore[co]||0, lastAds:lastAds[co]||0})).sort((x,y)=>y.score-x.score);
   if(!rows.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין היסטוריה עדיין</td></tr>`; return; }
   tbody.innerHTML=rows.map((r,i)=>`<tr>
     <td class="rowhead">${i===0?'🏆 ':''}${r.co}</td>
     <td class="price ${i===0?'best':''}">${r.score}</td>
-    <td>${r.appearances}</td>
-    <td>${r.days}</td>
-    <td class="price">${r.last||'—'}</td></tr>`).join('');
+    <td>${r.ads}</td>
+    <td class="price">${r.last||'—'}</td>
+    <td>${r.lastAds||'—'}</td>
+    <td>${r.days}</td></tr>`).join('');
 }
 
 // Build the daily score matrix: {dates:[...], companies:[{co, byDate:{}, total}]}
@@ -583,16 +586,20 @@ window.exportPaisplusExcel=function(){
   ws2['!cols']=dHead.map((_,i)=>({wch:i===0?18:11}));
   XLSX.utils.book_append_sheet(wb,ws2,'ניקוד יומי');
 
-  // Sheet 3 — cumulative totals per company
-  const cHead=['חברה','ניקוד מצטבר','הופעות','ימים'];
+  // Sheet 3 — cumulative totals per company (score next to its ad count)
+  const lastDate = ppAll.length ? ppAll[ppAll.length-1].date : null;
+  const cHead=['חברה','ניקוד מצטבר','מס\' מודעות','ניקוד אחרון','מודעות אחרונות','ימים'];
   const cRows=[cHead];
   companies.forEach(c=>{
-    const days=new Set(); let app=0;
-    ppAll.forEach(day=>(day.offers||[]).forEach(o=>{ if((o.company||'לא ידוע')===c.co){app++;days.add(day.date);} }));
-    cRows.push([c.co, c.total, app, days.size]);
+    const days=new Set(); let ads=0, lastScore=0, lastAds=0;
+    ppAll.forEach(day=>(day.offers||[]).forEach(o=>{ if((o.company||'לא ידוע')===c.co){
+      ads++; days.add(day.date);
+      if(day.date===lastDate){ lastScore+=offerScore(o.row); lastAds++; }
+    }}));
+    cRows.push([c.co, c.total, ads, lastScore, lastAds, days.size]);
   });
   const ws3=XLSX.utils.aoa_to_sheet(cRows);
-  ws3['!cols']=[{wch:18},{wch:14},{wch:10},{wch:8}];
+  ws3['!cols']=[{wch:18},{wch:14},{wch:11},{wch:12},{wch:14},{wch:8}];
   XLSX.utils.book_append_sheet(wb,ws3,'ניקוד מצטבר');
 
   XLSX.writeFile(wb,`paisplus_${new Date().toISOString().slice(0,10)}.xlsx`);
