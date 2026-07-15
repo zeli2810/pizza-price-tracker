@@ -7,10 +7,11 @@ Live-scraped (exact, daily):
                  count total and those whose address is in Tel Aviv.
   - Papa John's: /branch/ archive (same pattern; a real Chrome browser passes
                  the Akamai check).
+  - Pizza Prego: /branch/ archive (same WordPress pattern).
 
 Manual fallback (until per-site scrapers are built):
-  - Pizza Shemesh / Story / Prego — JS single-page apps; still using the
-    user-provided figures (Tel Aviv unknown → null).
+  - Pizza Shemesh (no public branch page) and Pizza Story (city list has no
+    Tel Aviv branch → tlv=0; total needs per-city iteration).
 
 Every record is tagged source = "scraped" | "manual".
 Output: data/branch_counts.json (history) + Firestore branch_counts/{date}.
@@ -157,7 +158,8 @@ def run_scrape(verbose=True):
     # Pizza Hut + Papa John's — WordPress /branch/ archives
     with sync_playwright() as pw:
         for key, base in [("pizzahut", "https://www.pizzahut.co.il"),
-                          ("papajohns", "https://www.papajohns.co.il")]:
+                          ("papajohns", "https://www.papajohns.co.il"),
+                          ("prego", "https://www.prego.co.il")]:
             try:
                 r = scrape_wp_branches(base, pw)
                 if r and r["total"]:

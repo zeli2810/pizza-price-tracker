@@ -1,7 +1,7 @@
 [
   {
     "date": "2026-07-15",
-    "timestamp": "2026-07-15 16:01:09",
+    "timestamp": "2026-07-15 19:05:25",
     "chains": {
       "dominos": {
         "total": 64,
@@ -29,9 +29,9 @@
         "source": "manual"
       },
       "prego": {
-        "total": 25,
-        "tlv": null,
-        "source": "manual"
+        "total": 24,
+        "tlv": 3,
+        "source": "scraped"
       }
     }
   }
