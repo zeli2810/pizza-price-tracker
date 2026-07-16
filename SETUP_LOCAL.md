@@ -34,19 +34,25 @@
 
 ## תזמון אוטומטי יומי (17:00)
 
-פתח **Command Prompt כמנהל** (Run as administrator) והרץ:
-```bat
-schtasks /create /tn "PizzaTracker" /tr "C:\_מישהו לחשוב איתו_\הורדות\ai\pizza_tracker\run_daily.bat" /sc daily /st 17:00
-```
-(עדכן את הנתיב אם הפרויקט נמצא במקום אחר.)
+השתמש בסקריפט `setup_schedule.ps1` שמגדיר משימה **חסינה לעיכובים**: מריצה בדיוק
+ב-17:00, **מעירה את המחשב מ-Sleep**, ואם המחשב היה כבוי ב-17:00 מריצה **מיד
+כשנדלק**, עובדת גם על סוללה, ומנסה שוב אם ריצה נכשלה.
 
-- לבדוק שהמשימה קיימת: `schtasks /query /tn "PizzaTracker"`
-- להריץ אותה עכשיו לבדיקה: `schtasks /run /tn "PizzaTracker"`
-- למחוק: `schtasks /delete /tn "PizzaTracker" /f`
+1. פתח **PowerShell כמנהל**: Start → הקלד `powershell` → לחיצה ימנית → **Run as administrator**.
+2. עבור לתיקיית הפרויקט והרץ:
+   ```powershell
+   cd "C:\_מישהו לחשוב איתו_\הורדות\ai\pizza_tracker"
+   powershell -ExecutionPolicy Bypass -File .\setup_schedule.ps1
+   ```
+   אמור להופיע `OK - 'PizzaTracker' scheduled daily at 17:00`.
 
-> המחשב צריך להיות דלוק ומחובר לאינטרנט ב-17:00. אם הוא היה כבוי, אפשר להוסיף
-> למשימה הרצה עם הדלקה (בהגדרות Task Scheduler: "Run task as soon as possible
-> after a scheduled start is missed").
+- לבדוק את ההגדרות: `schtasks /query /tn PizzaTracker /v /fo LIST`
+- להריץ עכשיו לבדיקה: `schtasks /run /tn PizzaTracker`
+- למחוק: `schtasks /delete /tn PizzaTracker /f`
+
+> **בלי עיכובים**: Task Scheduler מדייק בזמן (בניגוד ל-GitHub). המגבלה היחידה —
+> אם המחשב **כבוי לגמרי** (לא Sleep) ב-17:00, הריצה תתבצע מיד כשתדליק אותו.
+> מ-Sleep הוא מתעורר לבד. כלומר: מחשב דלוק או ישן → 17:00 מדויק, בלי עיכוב.
 
 ## הערות
 - הרץ **פעם ביום בלבד**. ריצות חוזרות תכופות עלולות לגרום לוולט להחזיר רשימה
