@@ -15,10 +15,16 @@
 # =====================================================================
 
 $ErrorActionPreference = "Stop"
-$bat = Join-Path $PSScriptRoot "run_daily.bat"
-if (-not (Test-Path $bat)) { throw "run_daily.bat not found next to this script." }
+$runner = Join-Path $PSScriptRoot "run_daily.py"
+if (-not (Test-Path $runner)) { throw "run_daily.py not found next to this script." }
 
-$action  = New-ScheduledTaskAction -Execute $bat -WorkingDirectory $PSScriptRoot
+# Launch python.exe (an ASCII path) with run_daily.py — the project path has
+# Hebrew chars, which break a .bat launch / cmd, but python.exe handles the
+# Unicode argument fine. Auto-detect python; fall back to the known install.
+$py = (Get-Command python -ErrorAction SilentlyContinue).Source
+if (-not $py) { $py = "$env:LOCALAPPDATA\Programs\Python\Python313\python.exe" }
+
+$action  = New-ScheduledTaskAction -Execute $py -Argument ('"' + $runner + '"') -WorkingDirectory $PSScriptRoot
 $trigger = New-ScheduledTaskTrigger -Daily -At 17:00
 
 $settings = New-ScheduledTaskSettingsSet `
