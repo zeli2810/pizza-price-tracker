@@ -10,7 +10,7 @@ REM Run from the folder this .bat lives in.
 cd /d "%~dp0"
 
 REM ---- EDIT THIS: full path to your Firebase service-account JSON key ----
-set "FIREBASE_SERVICE_ACCOUNT_FILE=C:\Users\eli\.pizza\serviceAccount.json"
+set "FIREBASE_SERVICE_ACCOUNT_FILE=C:\Users\eli\serviceAccount.json"
 
 set "PYTHONIOENCODING=utf-8"
 set "LOG=%~dp0run_daily.log"
