@@ -2,11 +2,11 @@ name: Daily Pais Plus Pizza Offers Scrape
 
 on:
   schedule:
-    # Cron is UTC-only; Israel is UTC+3 in summer (IDT) and UTC+2 in winter (IST).
-    # Both crons fire; the "check time" step below skips whichever one isn't
-    # actually 17:00 Israel local time, so only one real run happens per day.
+    # Best-effort ~17:00 Israel (GitHub cron fires late; no strict hour check).
+    # NOTE: Pais Plus + Wolt block non-Israeli IPs, so this CI run almost always
+    # gets 0 / a degraded result and the scrapers keep the existing data. The
+    # RELIABLE path for these two is run_daily.bat on an Israeli-IP machine.
     - cron: '0 14 * * *'
-    - cron: '0 15 * * *'
   workflow_dispatch: {}
   repository_dispatch:
     types: [manual-refresh-paisplus]
@@ -24,39 +24,24 @@ jobs:
     env:
       FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
     steps:
-      - name: Check it's actually 17:00 Israel time
-        if: github.event_name == 'schedule'
-        run: |
-          HOUR=$(TZ=Asia/Jerusalem date +%H)
-          if [ "$HOUR" != "17" ]; then
-            echo "Not 17:00 Israel time (it's $HOUR:00 there) - skipping this trigger."
-            echo "SKIP=true" >> "$GITHUB_ENV"
-          fi
-
       - uses: actions/checkout@v4
-        if: env.SKIP != 'true'
 
       - uses: actions/setup-python@v5
-        if: env.SKIP != 'true'
         with:
           python-version: '3.12'
 
       - name: Install dependencies
-        if: env.SKIP != 'true'
         run: |
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium chrome
 
       - name: Run Pais Plus scraper
-        if: env.SKIP != 'true'
         run: python paisplus_scraper.py
 
       - name: Run Wolt scraper
-        if: env.SKIP != 'true'
         run: python wolt_scraper.py || true
 
       - name: Commit updated offers data
-        if: env.SKIP != 'true'
         run: |
           git config user.name "pizza-price-bot"
           git config user.email "actions@users.noreply.github.com"
