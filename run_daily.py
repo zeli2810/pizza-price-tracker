@@ -23,8 +23,19 @@ os.chdir(HERE)
 os.environ.setdefault("FIREBASE_SERVICE_ACCOUNT_FILE", r"C:\Users\eli\serviceAccount.json")
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
+# Anthropic API key for the marketing idea extractor: from env, else a key file.
+if not os.environ.get("ANTHROPIC_API_KEY"):
+    for kf in (r"C:\Users\eli\.pizza\anthropic_key.txt", str(HERE / "anthropic_key.txt")):
+        try:
+            if Path(kf).exists():
+                os.environ["ANTHROPIC_API_KEY"] = Path(kf).read_text(encoding="utf-8").strip()
+                break
+        except Exception:
+            pass
+
 LOG = HERE / "run_daily.log"
-SCRAPERS = ["multi_scraper.py", "branch_scraper.py", "paisplus_scraper.py", "wolt_scraper.py"]
+SCRAPERS = ["multi_scraper.py", "branch_scraper.py", "paisplus_scraper.py",
+            "wolt_scraper.py", "marketing_scraper.py"]
 
 
 def log(msg):

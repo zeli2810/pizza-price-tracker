@@ -12,3 +12,4 @@ serviceAccount*.json
 firebase-debug.log
 
 run_daily.log
+anthropic_key.txt
