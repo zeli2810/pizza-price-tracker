@@ -77,6 +77,25 @@ select,input[type=date]{background:var(--surface2);color:var(--text);border:1px 
   cursor:pointer;font-size:.72rem;padding:1px 6px;margin-inline-start:6px}
 .daybtn:hover{background:var(--border)}
 
+/* marketing idea cards */
+.idea-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin-top:16px}
+.idea{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:8px}
+.idea .ihead{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.idea .brand{font-weight:800;font-size:1rem;color:var(--text)}
+.idea .camp{color:var(--muted);font-size:.82rem;margin-top:2px}
+.idea .sum{font-size:.85rem;line-height:1.55;color:var(--text)}
+.idea .ev{font-size:.8rem;color:var(--good);background:rgba(63,185,80,.08);border-radius:8px;padding:6px 9px}
+.idea .ifoot{display:flex;justify-content:space-between;align-items:center;font-size:.72rem;color:var(--muted);margin-top:auto;padding-top:4px;border-top:1px solid var(--border)}
+.badge{display:inline-block;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:700;white-space:nowrap}
+.badge.cat{background:var(--surface2);color:var(--accent);border:1px solid var(--border)}
+.badge.c-high{background:rgba(63,185,80,.15);color:var(--good)}
+.badge.c-medium{background:rgba(210,153,34,.15);color:var(--best)}
+.badge.c-low{background:rgba(139,148,158,.15);color:var(--muted)}
+.badge.dup{background:rgba(248,81,73,.12);color:var(--bad)}
+.badge.manual{background:rgba(47,129,247,.15);color:var(--accent)}
+.idea a.src{color:var(--accent);text-decoration:none}
+.idea a.src:hover{text-decoration:underline}
+
 details{margin-top:14px}
 summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding:6px 0}
 .no-data{text-align:center;padding:40px;color:var(--muted)}
@@ -205,14 +224,30 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
-<!-- ============ TAB: Ideas (placeholder) ============ -->
+<!-- ============ TAB: Ideas (marketing idea bank) ============ -->
 <div class="panel" id="panel-ideas">
   <section>
-    <div class="placeholder">
-      <div class="big">💡</div>
-      <h2 style="color:var(--muted)">רעיונאות — בקרוב</h2>
-      <p>ספר לי מה תרצה שיופיע כאן ואבנה את זה.</p>
+    <h2>רעיונאות — בנק רעיונות שיווקיים <span id="ideasCount" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <div class="controls">
+      <input type="search" id="ideaSearch" placeholder="חיפוש חופשי (מותג / קמפיין / תקציר)…" style="min-width:220px">
+      <select id="ideaBrand"><option value="">כל המותגים</option></select>
+      <select id="ideaCategory"><option value="">כל הקטגוריות</option></select>
+      <select id="ideaSource"><option value="">כל המקורות</option></select>
+      <select id="ideaConf">
+        <option value="">כל רמות העדות</option>
+        <option value="high">עדות חזקה</option>
+        <option value="medium">עדות בינונית</option>
+        <option value="low">עדות מוגבלת</option>
+      </select>
+      <button class="action" id="ideaTodayBtn" onclick="toggleIdeaToday()">📅 היום נאסף</button>
     </div>
+    <div id="ideasList" class="idea-cards"><div class="no-data">טוען…</div></div>
+  </section>
+  <section>
+    <details>
+      <summary>רשימת מקורות</summary>
+      <div id="ideaSources" style="font-size:.8rem;color:var(--muted);line-height:1.9;margin-top:8px"></div>
+    </details>
   </section>
 </div>
 
@@ -271,6 +306,8 @@ let statusDoc = null;  // meta/status
 let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
 let woltAll = [];      // [{date, offers:[]}, ...] — ALL Wolt dates
 let branchAll = [];    // [{date, chains:{key:{total,tlv,source}}}, ...]
+let marketingIdeas = [];  // [{id, brand, campaign_name, category, summary, ...}]
+let ideaTodayOnly = false;
 let usingFallback = false;
 
 // Score an offer by the row it appears in on the Pais Plus page: higher row =
@@ -365,7 +402,13 @@ async function loadFromFirestore(){
     const bs=await getDocs(query(collection(db,'branch_counts'), orderBy('date')));
     branchAll = bs.docs.map(d=>d.data());
   }catch(e){}
-  return { hist, status, ppAll, woltAll, branchAll };
+  // Marketing ideas
+  let ideas=[];
+  try{
+    const is=await getDocs(collection(db,'marketing_ideas'));
+    ideas = is.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){}
+  return { hist, status, ppAll, woltAll, branchAll, ideas };
 }
 
 async function loadFallback(){
@@ -396,7 +439,7 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,woltAll,branchAll} = await loadFromFirestore();
+      let {hist,status,ppAll,woltAll,branchAll,ideas} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
       if(!ppAll||!ppAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
@@ -405,12 +448,12 @@ async function loadData(){
         if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
       }
-      return {hist,status,ppAll,woltAll,branchAll};
+      return {hist,status,ppAll,woltAll,branchAll,ideas};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[] };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -754,6 +797,89 @@ window.exportWoltExcel=function(){
   XLSX.writeFile(wb,`wolt_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
+// ---- Ideas tab (marketing idea bank) ----------------------------------------
+const IDEA_SOURCES = ["QSR Magazine","Nation's Restaurant News","Restaurant Business Magazine",
+  "Ad Age","Marketing Dive","The Drum","Adweek","Cannes Lions","Clio Awards","Effie Awards"];
+let _ideaFiltersInit = false;
+
+function initIdeaFilters(){
+  if(_ideaFiltersInit) return;
+  _ideaFiltersInit = true;
+  const brands=[...new Set(marketingIdeas.map(i=>i.brand).filter(Boolean))].sort();
+  const cats=[...new Set(marketingIdeas.map(i=>i.category).filter(Boolean))].sort();
+  const srcs=[...new Set(marketingIdeas.map(i=>i.source_name).filter(Boolean))].sort();
+  const fill=(id,arr)=>{ const s=document.getElementById(id);
+    arr.forEach(v=>{ const o=document.createElement('option'); o.value=v; o.textContent=v; s.appendChild(o); }); };
+  fill('ideaBrand',brands); fill('ideaCategory',cats); fill('ideaSource',srcs);
+  ['ideaSearch','ideaBrand','ideaCategory','ideaSource','ideaConf'].forEach(id=>
+    document.getElementById(id).addEventListener('input', renderIdeas));
+  document.getElementById('ideaSources').innerHTML =
+    IDEA_SOURCES.map(s=>`• ${s}`).join('<br>');
+}
+window.toggleIdeaToday=function(){
+  ideaTodayOnly=!ideaTodayOnly;
+  document.getElementById('ideaTodayBtn').style.background = ideaTodayOnly ? 'var(--accent)' : '';
+  renderIdeas();
+};
+
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+function renderIdeas(){
+  initIdeaFilters();
+  const list=document.getElementById('ideasList');
+  const q=(document.getElementById('ideaSearch').value||'').toLowerCase();
+  const fb=document.getElementById('ideaBrand').value;
+  const fc=document.getElementById('ideaCategory').value;
+  const fs=document.getElementById('ideaSource').value;
+  const fconf=document.getElementById('ideaConf').value;
+  const dayAgo=Date.now()-24*3600*1000;
+  let rows=marketingIdeas.filter(i=>{
+    if(fb && i.brand!==fb) return false;
+    if(fc && i.category!==fc) return false;
+    if(fs && i.source_name!==fs) return false;
+    if(fconf && (i.confidence||'low')!==fconf) return false;
+    if(ideaTodayOnly){ const t=Date.parse(i.date_collected||''); if(!(t&&t>=dayAgo)) return false; }
+    if(q){ const hay=`${i.brand||''} ${i.campaign_name||''} ${i.summary||''}`.toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  }).sort((a,b)=>String(b.date_collected||'').localeCompare(String(a.date_collected||'')));
+
+  document.getElementById('ideasCount').textContent =
+    `· ${rows.length} מתוך ${marketingIdeas.length} רעיונות`;
+
+  if(!marketingIdeas.length){
+    list.innerHTML=`<div class="no-data">בנק הרעיונות עדיין ריק. הרץ את האיסוף (marketing_scraper) עם מפתח Anthropic API כדי למלא אותו.</div>`;
+    return;
+  }
+  if(!rows.length){ list.innerHTML=`<div class="no-data">אין רעיונות התואמים לסינון.</div>`; return; }
+
+  list.innerHTML=rows.map(i=>{
+    const conf=(i.confidence||'low');
+    const confLabel={high:'עדות חזקה',medium:'עדות בינונית',low:'עדות מוגבלת'}[conf]||conf;
+    const limited=(conf==='low' && !i.evidence_of_success);
+    const date=(i.date_collected||'').slice(0,10);
+    return `<div class="idea">
+      <div class="ihead">
+        <div>
+          <div class="brand">${esc(i.brand)||'—'}</div>
+          <div class="camp">${esc(i.campaign_name)||''}</div>
+        </div>
+        <span class="badge cat">${esc(i.category)||'אחר'}</span>
+      </div>
+      <div class="sum">${esc(i.summary)||''}</div>
+      ${i.evidence_of_success?`<div class="ev">📈 ${esc(i.evidence_of_success)}</div>`:''}
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <span class="badge c-${conf}">${limited?'עדות מוגבלת':confLabel}</span>
+        ${i.is_manual?'<span class="badge manual">ידני</span>':''}
+        ${i.possible_duplicate_of?`<span class="badge dup" title="כפילות אפשרית">כפילות אפשרית</span>`:''}
+      </div>
+      <div class="ifoot">
+        <span>${esc(i.source_name)||''}${date?' · '+date:''}</span>
+        ${i.source_url?`<a class="src" href="${esc(i.source_url)}" target="_blank" rel="noopener">למקור ↗</a>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ---- excel export (comparison) ----------------------------------------------
 window.exportExcel=function(){
   const history=viewHistory();
@@ -876,7 +1002,7 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); }
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -894,8 +1020,8 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[];
+  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br,ideas}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[];
 
   // prefill custom-range inputs with the data's date bounds
   const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
