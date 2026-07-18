@@ -24,7 +24,16 @@ service cloud.firestore {
     }
     match /marketing_ideas/{id} {
       allow read: if true;
-      allow write: if false;
+      // Scraped ideas come from the Admin SDK (bypasses rules). From the browser,
+      // allow ONLY manually-added ideas, with a validated shape; no edits/deletes.
+      allow create: if request.resource.data.is_manual == true
+        && request.resource.data.source_name == 'ידני'
+        && request.resource.data.brand is string
+        && request.resource.data.brand.size() > 0
+        && request.resource.data.brand.size() < 200
+        && request.resource.data.summary is string
+        && request.resource.data.summary.size() < 5000;
+      allow update, delete: if false;
     }
     match /branch_counts/{date} {
       allow read: if true;

@@ -226,6 +226,23 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 
 <!-- ============ TAB: Ideas (marketing idea bank) ============ -->
 <div class="panel" id="panel-ideas">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="toggleAddIdea()">➕ הוסף רעיון ידנית</button>
+  </div>
+  <div id="addIdeaForm" style="display:none;max-width:640px;margin:12px auto 0;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px">
+    <div style="display:grid;gap:8px">
+      <input id="ai_brand" placeholder="מותג / רשת *">
+      <input id="ai_campaign" placeholder="שם הקמפיין / כותרת">
+      <select id="ai_category"></select>
+      <textarea id="ai_summary" rows="3" placeholder="תיאור / תקציר *" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:.85rem"></textarea>
+      <input id="ai_evidence" placeholder="עדות להצלחה (מכירות / engagement / פרסים)">
+      <input id="ai_url" placeholder="קישור למקור (אופציונלי)">
+      <div style="display:flex;gap:8px;align-items:center">
+        <button class="action" onclick="submitIdea()">שמור רעיון</button>
+        <span id="ai_msg" style="font-size:.8rem;color:var(--muted)"></span>
+      </div>
+    </div>
+  </div>
   <section>
     <h2>רעיונאות — בנק רעיונות שיווקיים <span id="ideasCount" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
     <div class="controls">
@@ -274,7 +291,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy }
+import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, addDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
 
 // Main comparison = the three menu chains only. Pais Plus and Wolt have their
@@ -879,6 +896,39 @@ function renderIdeas(){
     </div>`;
   }).join('');
 }
+
+// ---- manual add idea ---------------------------------------------------------
+const IDEA_CATEGORIES=["LTO","מבצע מחיר","שיתוף פעולה","נאמנות לקוחות","סטאנט שיווקי","קמפיין דיגיטלי-חברתי","אחר"];
+window.toggleAddIdea=function(){
+  const f=document.getElementById('addIdeaForm');
+  if(!f.dataset.init){ f.dataset.init='1';
+    document.getElementById('ai_category').innerHTML=IDEA_CATEGORIES.map(c=>`<option>${c}</option>`).join(''); }
+  f.style.display = f.style.display==='none' ? 'block' : 'none';
+};
+window.submitIdea=async function(){
+  const msg=document.getElementById('ai_msg');
+  const brand=document.getElementById('ai_brand').value.trim();
+  const summary=document.getElementById('ai_summary').value.trim();
+  if(!brand || !summary){ msg.textContent='חובה למלא מותג ותיאור.'; msg.style.color='var(--bad)'; return; }
+  const evidence=document.getElementById('ai_evidence').value.trim();
+  const rec={
+    date_collected:new Date().toISOString(), source_name:'ידני',
+    source_url:document.getElementById('ai_url').value.trim(), published_date:'',
+    brand, campaign_name:document.getElementById('ai_campaign').value.trim()||null,
+    category:document.getElementById('ai_category').value, summary,
+    evidence_of_success:evidence||null, confidence:evidence?'high':'low',
+    possible_duplicate_of:null, is_manual:true, tags:''
+  };
+  msg.textContent='שומר…'; msg.style.color='var(--muted)';
+  try{
+    if(!isConfigured()) throw new Error('Firebase לא מוגדר');
+    const ref=await addDoc(collection(getDb(),'marketing_ideas'), rec);
+    marketingIdeas.unshift({id:ref.id, ...rec});
+    renderIdeas();
+    ['ai_brand','ai_campaign','ai_summary','ai_evidence','ai_url'].forEach(id=>document.getElementById(id).value='');
+    msg.textContent='נשמר ✓'; msg.style.color='var(--good)';
+  }catch(e){ msg.textContent='שגיאה בשמירה: '+e.message; msg.style.color='var(--bad)'; }
+};
 
 // ---- excel export (comparison) ----------------------------------------------
 window.exportExcel=function(){
