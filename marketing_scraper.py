@@ -60,7 +60,7 @@ SYSTEM_PROMPT = (
     "- campaign_name: the campaign/promotion name.\n"
     "- category: EXACTLY one of: LTO / מבצע מחיר / שיתוף פעולה / נאמנות לקוחות / "
     "סטאנט שיווקי / קמפיין דיגיטלי-חברתי / אחר.\n"
-    "- summary: 2-4 sentence summary of the idea, in Hebrew.\n"
+    "- summary: 2-4 sentence summary of the idea, in English.\n"
     "- evidence_of_success: a concrete quote/number from the article showing "
     "success (sales, engagement, awards), or null if none.\n"
     "- confidence: high / medium / low — how strong the evidence in the article is.\n"
