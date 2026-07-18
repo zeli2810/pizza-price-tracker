@@ -41,7 +41,11 @@ SOURCES = [
     {"name": "Adweek",                       "home": "https://www.adweek.com",                 "feed_url": ""},
 ]
 
-MODEL = os.environ.get("MARKETING_MODEL", "claude-sonnet-5")
+# Extraction backend: "ollama" (local, free) | "claude" (API) | "heuristic" (rules)
+EXTRACTOR = os.environ.get("MARKETING_EXTRACTOR", "ollama").lower()
+MODEL = os.environ.get("MARKETING_MODEL", "claude-sonnet-5")          # for claude mode
+OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "qwen2.5:7b")           # for ollama mode (good Hebrew+JSON)
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
 MAX_PER_SOURCE = int(os.environ.get("MARKETING_MAX_PER_SOURCE", "8"))
 FUZZY_THRESHOLD = 82  # rapidfuzz 0-100 (spec: 0.82)
 CATEGORIES = ["LTO", "מבצע מחיר", "שיתוף פעולה", "נאמנות לקוחות",
@@ -112,29 +116,58 @@ def fetch_article_text(url):
         return ""
 
 
-# ── Claude extraction ──────────────────────────────────────────────────────────
-def extract_idea(client, text):
-    """Send article text to Claude; return the parsed idea dict or None."""
-    if not text or len(text) < 200:
+# ── extraction (Ollama / Claude / heuristic) ───────────────────────────────────
+def _validate(idea):
+    if not isinstance(idea, dict):
         return None
+    if not idea.get("brand") and not idea.get("campaign_name"):
+        return None  # not a specific campaign
+    if idea.get("category") not in CATEGORIES:
+        idea["category"] = "אחר"
+    if idea.get("confidence") not in ("high", "medium", "low"):
+        idea["confidence"] = "low"
+    return idea
+
+
+def _extract_ollama(text):
+    """Local, free extraction via an Ollama model (JSON mode)."""
+    try:
+        r = requests.post(f"{OLLAMA_URL}/api/chat", timeout=180, json={
+            "model": OLLAMA_MODEL, "stream": False, "format": "json",
+            "options": {"temperature": 0},
+            "messages": [
+                {"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": text[:8000]},
+            ],
+        })
+        content = r.json().get("message", {}).get("content", "")
+        m = re.search(r"\{.*\}", content, re.S)
+        return _validate(json.loads(m.group(0))) if m else None
+    except Exception as e:
+        log(f"  Ollama extract error: {str(e)[:80]}")
+        return None
+
+
+def _extract_claude(text, client):
     try:
         resp = client.messages.create(
             model=MODEL, max_tokens=700, system=SYSTEM_PROMPT,
-            messages=[{"role": "user", "content": text}],
-        )
-        raw = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text").strip()
+            messages=[{"role": "user", "content": text}])
+        raw = "".join(b.text for b in resp.content if getattr(b, "type", "") == "text")
         m = re.search(r"\{.*\}", raw, re.S)
-        if not m:
-            return None
-        idea = json.loads(m.group(0))
-        if not idea.get("brand") and not idea.get("campaign_name"):
-            return None  # not a specific campaign
-        if idea.get("category") not in CATEGORIES:
-            idea["category"] = "אחר"
-        return idea
+        return _validate(json.loads(m.group(0))) if m else None
     except Exception as e:
         log(f"  Claude extract error: {str(e)[:80]}")
         return None
+
+
+def extract_idea(text, client=None):
+    """Extract a structured idea from article text using the configured backend."""
+    if not text or len(text) < 200:
+        return None
+    if EXTRACTOR == "claude":
+        return _extract_claude(text, client)
+    return _extract_ollama(text)
 
 
 # ── dedup ──────────────────────────────────────────────────────────────────────
@@ -150,19 +183,32 @@ def find_fuzzy_duplicate(db, brand, campaign, existing):
 
 
 def run_scrape(verbose=True):
-    api_key = os.environ.get("ANTHROPIC_API_KEY")
-    if not api_key:
-        log("⚠ ANTHROPIC_API_KEY not set — cannot extract ideas. Aborting.")
-        return {"added": 0, "error": "no ANTHROPIC_API_KEY"}
+    client = None
+    if EXTRACTOR == "claude":
+        api_key = os.environ.get("ANTHROPIC_API_KEY")
+        if not api_key:
+            log("⚠ ANTHROPIC_API_KEY not set — cannot extract ideas. Aborting.")
+            return {"added": 0, "error": "no ANTHROPIC_API_KEY"}
+        import anthropic
+        client = anthropic.Anthropic(api_key=api_key)
+    else:  # ollama
+        try:
+            tags = requests.get(f"{OLLAMA_URL}/api/tags", timeout=8).json().get("models", [])
+            names = [m.get("name", "") for m in tags]
+            if not any(OLLAMA_MODEL.split(":")[0] in n for n in names):
+                log(f"⚠ Ollama model '{OLLAMA_MODEL}' not found (have: {names or 'none'}). "
+                    f"Run: ollama pull {OLLAMA_MODEL}. Aborting.")
+                return {"added": 0, "error": "ollama model missing"}
+        except Exception as e:
+            log(f"⚠ Ollama not reachable at {OLLAMA_URL} ({str(e)[:50]}). Aborting.")
+            return {"added": 0, "error": "ollama unreachable"}
+        log(f"using Ollama model: {OLLAMA_MODEL}")
 
     import firestore_sync
     if not firestore_sync.is_enabled():
         log("⚠ Firestore not configured — aborting (nothing to write to).")
         return {"added": 0, "error": "no Firestore"}
     db = firestore_sync.get_client()
-
-    import anthropic
-    client = anthropic.Anthropic(api_key=api_key)
 
     # existing ideas: url-ids (exact dedup) + (id, brand+campaign) for fuzzy
     existing_urls = set()
@@ -194,7 +240,7 @@ def run_scrape(verbose=True):
             if doc_id in existing_urls:
                 continue  # level-1 dedup: exact URL
             text = fetch_article_text(url)
-            idea = extract_idea(client, text)
+            idea = extract_idea(text, client)
             if not idea:
                 continue
             dup_of = find_fuzzy_duplicate(db, idea.get("brand"), idea.get("campaign_name"), existing_keys)
