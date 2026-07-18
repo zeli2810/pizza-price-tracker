@@ -22,6 +22,15 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /marketing_sources/{id} {
+      allow read: if true;
+      // User-added sources from the dashboard (online feeds / offline references).
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() < 200
+        && request.resource.data.kind in ['online', 'offline'];
+      allow update, delete: if false;
+    }
     match /marketing_ideas/{id} {
       allow read: if true;
       // Scraped ideas come from the Admin SDK (bypasses rules). From the browser,

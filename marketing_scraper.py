@@ -210,6 +210,21 @@ def run_scrape(verbose=True):
         return {"added": 0, "error": "no Firestore"}
     db = firestore_sync.get_client()
 
+    # user-added ONLINE sources from the dashboard join the scan list.
+    # The URL may be a feed itself or a homepage (discovery handles the latter).
+    sources = list(SOURCES)
+    try:
+        for doc in db.collection("marketing_sources").stream():
+            s = doc.to_dict()
+            if s.get("kind") == "online" and s.get("url"):
+                is_feed = bool(feedparser.parse(s["url"]).entries)
+                sources.append({"name": s.get("name", "מקור ידני"),
+                                "home": s["url"],
+                                "feed_url": s["url"] if is_feed else ""})
+                log(f"user source: {s.get('name')} ({'feed' if is_feed else 'homepage'})")
+    except Exception as e:
+        log(f"user sources load error: {str(e)[:60]}")
+
     # existing ideas: url-ids (exact dedup) + (id, brand+campaign) for fuzzy
     existing_urls = set()
     existing_keys = []
@@ -220,7 +235,7 @@ def run_scrape(verbose=True):
     log(f"bank has {len(existing_urls)} ideas already")
 
     added = 0
-    for src in SOURCES:
+    for src in sources:
         feed_url = src["feed_url"] or discover_feed(src["home"])
         if not feed_url:
             log(f"{src['name']}: לא נמצא RSS, נדרשת בדיקה ידנית")

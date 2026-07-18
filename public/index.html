@@ -261,10 +261,23 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div id="ideasList" class="idea-cards"><div class="no-data">טוען…</div></div>
   </section>
   <section>
-    <details>
-      <summary>רשימת מקורות</summary>
-      <div id="ideaSources" style="font-size:.8rem;color:var(--muted);line-height:1.9;margin-top:8px"></div>
-    </details>
+    <h2>מקורות <span style="font-size:.75rem;color:var(--muted);font-weight:400">· מובנים + שהוספת</span></h2>
+    <div id="ideaSources" style="font-size:.8rem;color:var(--muted);line-height:1.9;margin-top:8px"></div>
+    <div style="max-width:640px;margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
+      <b style="font-size:.85rem">הוספת מקור חדש</b>
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <select id="src_kind">
+          <option value="online">אונליין — קישור / RSS (ייסרק אוטומטית אם יש feed)</option>
+          <option value="offline">אופליין — דוח / קובץ / מגזין (לתיעוד והזנה ידנית)</option>
+        </select>
+        <input id="src_name" placeholder="שם המקור *">
+        <input id="src_url" placeholder="קישור (לאונליין) או מיקום הקובץ/הערה (לאופליין)">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="action" onclick="submitSource()">הוסף מקור</button>
+          <span id="src_msg" style="font-size:.8rem;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
   </section>
 </div>
 
@@ -324,6 +337,7 @@ let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
 let woltAll = [];      // [{date, offers:[]}, ...] — ALL Wolt dates
 let branchAll = [];    // [{date, chains:{key:{total,tlv,source}}}, ...]
 let marketingIdeas = [];  // [{id, brand, campaign_name, category, summary, ...}]
+let userSources = [];     // [{id, name, kind:'online'|'offline', url}]
 let ideaTodayOnly = false;
 let usingFallback = false;
 
@@ -425,7 +439,13 @@ async function loadFromFirestore(){
     const is=await getDocs(collection(db,'marketing_ideas'));
     ideas = is.docs.map(d=>({id:d.id, ...d.data()}));
   }catch(e){}
-  return { hist, status, ppAll, woltAll, branchAll, ideas };
+  // User-added marketing sources
+  let userSources=[];
+  try{
+    const ss=await getDocs(collection(db,'marketing_sources'));
+    userSources = ss.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){}
+  return { hist, status, ppAll, woltAll, branchAll, ideas, userSources };
 }
 
 async function loadFallback(){
@@ -456,7 +476,7 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,woltAll,branchAll,ideas} = await loadFromFirestore();
+      let {hist,status,ppAll,woltAll,branchAll,ideas,userSources} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
       if(!ppAll||!ppAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
@@ -465,12 +485,12 @@ async function loadData(){
         if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
       }
-      return {hist,status,ppAll,woltAll,branchAll,ideas};
+      return {hist,status,ppAll,woltAll,branchAll,ideas,userSources};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[] };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[] };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -830,9 +850,42 @@ function initIdeaFilters(){
   fill('ideaBrand',brands); fill('ideaCategory',cats); fill('ideaSource',srcs);
   ['ideaSearch','ideaBrand','ideaCategory','ideaSource','ideaConf'].forEach(id=>
     document.getElementById(id).addEventListener('input', renderIdeas));
-  document.getElementById('ideaSources').innerHTML =
-    IDEA_SOURCES.map(s=>`• ${s}`).join('<br>');
+  renderSources();
 }
+
+function renderSources(){
+  const builtin = IDEA_SOURCES.map(s=>`• ${esc(s)} <span style="opacity:.6">(מובנה)</span>`);
+  const user = userSources.map(s=>{
+    const tag = s.kind==='online' ? '🌐 אונליין' : '📄 אופליין';
+    const link = (s.kind==='online' && s.url)
+      ? ` — <a class="offer-link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url).slice(0,60)}</a>`
+      : (s.url ? ` — ${esc(s.url).slice(0,80)}` : '');
+    return `• ${esc(s.name)} <span style="opacity:.6">(${tag})</span>${link}`;
+  });
+  document.getElementById('ideaSources').innerHTML = [...builtin, ...user].join('<br>');
+}
+
+window.submitSource=async function(){
+  const msg=document.getElementById('src_msg');
+  const name=document.getElementById('src_name').value.trim();
+  const kind=document.getElementById('src_kind').value;
+  const url=document.getElementById('src_url').value.trim();
+  if(!name){ msg.textContent='חובה למלא שם מקור.'; msg.style.color='var(--bad)'; return; }
+  if(kind==='online' && !url){ msg.textContent='למקור אונליין חובה קישור.'; msg.style.color='var(--bad)'; return; }
+  msg.textContent='שומר…'; msg.style.color='var(--muted)';
+  try{
+    if(!isConfigured()) throw new Error('Firebase לא מוגדר');
+    const rec={name, kind, url, added_at:new Date().toISOString()};
+    const ref=await addDoc(collection(getDb(),'marketing_sources'), rec);
+    userSources.push({id:ref.id, ...rec});
+    renderSources();
+    document.getElementById('src_name').value=''; document.getElementById('src_url').value='';
+    msg.textContent = kind==='online'
+      ? 'נשמר ✓ — ייכלל בסריקה היומית הבאה'
+      : 'נשמר ✓ — הזן ממנו רעיונות דרך "הוסף רעיון ידנית"';
+    msg.style.color='var(--good)';
+  }catch(e){ msg.textContent='שגיאה: '+e.message; msg.style.color='var(--bad)'; }
+};
 window.toggleIdeaToday=function(){
   ideaTodayOnly=!ideaTodayOnly;
   document.getElementById('ideaTodayBtn').style.background = ideaTodayOnly ? 'var(--accent)' : '';
@@ -1070,8 +1123,8 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br,ideas}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[];
+  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br,ideas,userSources:us}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[];
 
   // prefill custom-range inputs with the data's date bounds
   const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
