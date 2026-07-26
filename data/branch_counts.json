@@ -253,7 +253,7 @@
   },
   {
     "date": "2026-07-26",
-    "timestamp": "2026-07-26 10:42:37",
+    "timestamp": "2026-07-26 17:46:55",
     "chains": {
       "dominos": {
         "total": 65,
@@ -272,11 +272,11 @@
       },
       "shemesh": {
         "total": 100,
-        "tlv": null,
-        "source": "manual"
+        "tlv": 5,
+        "source": "scraped"
       },
       "story": {
-        "total": 67,
+        "total": 62,
         "tlv": 0,
         "source": "scraped"
       },
