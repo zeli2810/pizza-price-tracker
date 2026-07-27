@@ -95,6 +95,60 @@ select,input[type=date]{background:var(--surface2);color:var(--text);border:1px 
 .badge.manual{background:rgba(47,129,247,.15);color:var(--accent)}
 .idea a.src{color:var(--accent);text-decoration:none}
 .idea a.src:hover{text-decoration:underline}
+.idea .tags{display:flex;gap:6px;flex-wrap:wrap}
+.tagchip{display:inline-block;border-radius:20px;padding:2px 10px;font-size:.68rem;font-weight:600;
+  background:var(--surface2);color:var(--muted);border:1px solid var(--border);cursor:pointer}
+.tagchip:hover{color:var(--accent);border-color:var(--accent)}
+.idea .fav{cursor:pointer;font-size:.7rem;font-weight:700;line-height:1;padding:3px 9px;border-radius:20px;
+  white-space:nowrap;background:var(--surface2);color:var(--muted);border:1px solid var(--border);transition:.15s}
+.idea .fav:hover{color:var(--best);border-color:var(--best)}
+.idea .fav.on{background:rgba(210,153,34,.15);color:var(--best);border-color:var(--best)}
+.badge.rel{background:linear-gradient(90deg,rgba(47,129,247,.2),rgba(63,185,80,.2));color:var(--accent);border:1px solid var(--accent)}
+.idea .why{font-size:.7rem;color:var(--muted)}
+.idea .why b{color:var(--accent);font-weight:600}
+/* smart-search box */
+.smartbox{margin:14px 0 4px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px}
+.smartbox .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.smartbox input[type=search]{flex:1;min-width:200px;font-size:.95rem;padding:9px 12px}
+.smartbox .hint{font-size:.74rem;color:var(--muted);margin-top:8px;line-height:1.7}
+.smartbox .ex{display:inline-block;border-radius:20px;padding:2px 10px;margin:0 2px;font-size:.72rem;
+  background:var(--surface2);color:var(--accent);border:1px solid var(--border);cursor:pointer}
+.smartbox .ex:hover{border-color:var(--accent)}
+.smartnote{font-size:.82rem;color:var(--accent);margin:10px 0 2px;font-weight:600}
+/* offer comparison */
+#offersBody .sec{font-size:1.05rem;font-weight:800;margin:22px 0 6px;color:var(--text);border-bottom:1px solid var(--border);padding-bottom:4px}
+#offersBody .grp{margin:14px 0 6px;font-weight:800;font-size:.9rem;padding:5px 12px;border-radius:8px;display:inline-block;color:var(--text)}
+#offersBody td.rowlabel{text-align:right}
+#offersBody td.best{background:rgba(63,185,80,.12);color:var(--good);font-weight:700}
+#offersBody .offer-meals{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px;margin-bottom:8px}
+#offersBody .offer-mealcard{border:1px solid var(--border);border-radius:10px;padding:8px 11px;background:var(--surface)}
+#offersBody .mc-head{font-weight:800;font-size:.85rem;margin-bottom:4px;color:var(--text)}
+#offersBody .mc-row{display:flex;justify-content:space-between;gap:8px;font-size:.77rem;padding:4px 0;border-top:1px solid var(--border)}
+#offersBody .mc-row span{color:var(--muted)}
+#offersBody .mc-row b{white-space:nowrap;color:var(--text)}
+#offersBody .mc-empty{font-size:.77rem;color:var(--muted);padding-top:4px}
+#offersBody td.offer-cell{vertical-align:top;cursor:default}
+#offersBody .oc-price{font-weight:700;font-size:.9rem}
+#offersBody .oc-name{font-size:.68rem;color:var(--muted);margin-top:2px;line-height:1.3;max-width:180px;margin-inline:auto}
+#offersBody td.best .oc-name{color:var(--good)}
+/* charts (TABIT) */
+.chartbox{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 6px 4px;margin-top:8px;overflow-x:auto}
+.chartbox svg{display:block;width:100%;height:auto;min-width:520px}
+.chart-legend{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px;font-size:.76rem;color:var(--muted)}
+.chart-legend .lg{display:inline-flex;align-items:center;gap:5px}
+.chart-legend .sw{width:14px;height:3px;border-radius:2px;display:inline-block}
+.tabit-up{color:var(--good);font-weight:700}
+.tabit-down{color:var(--bad);font-weight:700}
+/* QSR Magazine / Press monitoring — article-table cells, shared by both tabs.
+   Cells must WRAP — the global th,td{white-space:nowrap} otherwise makes long
+   titles/summaries overflow and overlap. */
+#panel-qsr td, #panel-press td{vertical-align:top;text-align:right;white-space:normal;word-break:break-word}
+#panel-qsr td.qsr-titlecell, #panel-press td.qsr-titlecell{width:32%;min-width:160px}
+#panel-qsr td.qsr-titlecell b, #panel-press td.qsr-titlecell b{font-weight:700;line-height:1.4;display:block}
+#panel-qsr .qsr-en, #panel-press .qsr-en{font-size:.72rem;color:var(--muted);margin-top:3px;line-height:1.4}
+#panel-qsr td.qsr-sumcell, #panel-press td.qsr-sumcell{width:46%;font-size:.8rem;color:var(--text);line-height:1.55;font-weight:400}
+#panel-qsr .qsr-sum, #panel-press .qsr-sum{display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+#panel-qsr a.offer-link, #panel-press a.offer-link{white-space:nowrap}
 
 details{margin-top:14px}
 summary{cursor:pointer;color:var(--muted);font-size:.85rem;padding:6px 0}
@@ -119,9 +173,14 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <!-- Tab navigation -->
 <nav class="tabs" id="tabs">
   <button class="tab active" data-tab="compare">השוואת רשתות</button>
+  <button class="tab" data-tab="offers">השוואת הצעות</button>
   <button class="tab" data-tab="paisplus">פייס פלוס</button>
+  <button class="tab" data-tab="paisplusGeneral">פייס פלוס – כללי</button>
   <button class="tab" data-tab="wolt">וולט</button>
   <button class="tab" data-tab="branches">כמות סניפים</button>
+  <button class="tab" data-tab="tabit">TABIT מדד</button>
+  <button class="tab" data-tab="qsr">QSR Magazine</button>
+  <button class="tab" data-tab="press">מעקב עיתונות</button>
   <button class="tab" data-tab="ideas">רעיונאות</button>
 </nav>
 
@@ -172,9 +231,34 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
+<!-- ============ TAB: Offer comparison (manual table) ============ -->
+<div class="panel" id="panel-offers">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportOffersExcel()">⬇ ייצוא הצעות לאקסל</button>
+  </div>
+  <section>
+    <h2>השוואת הצעות <span style="font-size:.75rem;color:var(--muted);font-weight:400">· משלוח · ארוחות · איסוף · מיוחדים · ★ = הזול ביותר בשורה</span></h2>
+    <div id="offersBody"><div class="no-data">טוען…</div></div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:10px">נתונים חיים הנשלפים אוטומטית מאתרי הרשתות מדי יום ב-17:00. ★ = הזול ביותר בשורה. מתחת לכל מחיר — שם המוצר; ⓘ = תיאור מלא בריחוף.</p>
+  </section>
+  <section>
+    <h2>היסטוריה יומית <span style="font-size:.75rem;color:var(--muted);font-weight:400">· נצברת מדי יום (העדכני למעלה) · מחירי הפיצות לכל רשת</span></h2>
+    <div class="tbl-wrap">
+      <table id="offerHistTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+</div>
+
 <!-- ============ TAB: Pais Plus (offers) ============ -->
 <div class="panel" id="panel-paisplus">
   <div class="toolbar" style="margin-top:18px">
+    <select id="ppSizeSel" onchange="setPpSize(this.value)">
+      <option value="family" selected>🍕 פיצה משפחתית</option>
+      <option value="personal">🍕 פיצה אישית</option>
+      <option value="all">הכל</option>
+    </select>
+    <button class="action" id="ppChainFilterBtn" onclick="togglePpChainFilter()" style="background:var(--accent)">📋 הכל</button>
+    <button class="action" id="ppPickupBtn" onclick="togglePpPickupOnly()">🏬 איסוף בלבד</button>
     <button class="action" onclick="exportPaisplusExcel()">⬇ ייצוא פייס פלוס לאקסל</button>
   </div>
   <section>
@@ -182,25 +266,36 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div class="tbl-wrap">
       <table id="ppTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ניקוד לפי מיקום בדף: שורה 1 = 100 · שורה 2 = 75 · שאר השורות נמוך בהרבה (יורד ככל שיורדים בדף).</p>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ברירת מחדל: פיצה משפחתית · רשתות נבחרות (דומינוס, פיצה האט, פאפא ג'ונס, עגבניה, פרגו). ״איסוף בלבד״ = ההצעה מוגבלת להזמנה בסניף בלבד (אין אתר/אפליקציה).</p>
   </section>
+</div>
+
+<!-- ============ TAB: Pais Plus GENERAL (homepage — all benefit categories) ============ -->
+<div class="panel" id="panel-paisplusGeneral">
+  <div class="toolbar" style="margin-top:18px">
+    <select id="ppGenSizeSel" onchange="setPpGenSize(this.value)">
+      <option value="family" selected>🍕 פיצה משפחתית</option>
+      <option value="personal">🍕 פיצה אישית</option>
+      <option value="all">הכל</option>
+    </select>
+    <button class="action" id="ppGenChainFilterBtn" onclick="togglePpGenChainFilter()" style="background:var(--accent)">📋 הכל</button>
+    <button class="action" id="ppGenPickupBtn" onclick="togglePpGenPickupOnly()">🏬 איסוף בלבד</button>
+    <button class="action" onclick="exportPaisplusGeneralExcel()">⬇ ייצוא לאקסל</button>
+  </div>
   <section>
-    <h2>ניקוד יומי לפי חברה <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סה"כ ניקוד לכל חברה בכל יום</span></h2>
+    <h2>הצעות – פייס פלוס (כללי) <span id="ppGenDate" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">נשלף מעמוד הבית הכללי של פייס פלוס (<a class="offer-link" href="https://paisplus.co.il/" target="_blank" rel="noopener">paisplus.co.il</a>) — כל קטגוריות ההטבות (הופעות, קמעונאות, סרטים ועוד), לא רק פיצה. הסינונים למטה זהים ללשונית "פייס פלוס" אך יתאימו רק למיעוט ההצעות שהן פיצה.</p>
     <div class="tbl-wrap">
-      <table id="ppDailyTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+      <table id="ppGenTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-  </section>
-  <section>
-    <h2>היסטוריה מצטברת (ניקוד לפי חברה) <span style="font-size:.75rem;color:var(--muted);font-weight:400">· סכום הניקוד לאורך כל הימים שנאספו</span></h2>
-    <div class="tbl-wrap">
-      <table id="ppHistTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
-    </div>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ברירת מחדל: פיצה משפחתית · רשתות נבחרות (דומינוס, פיצה האט, פאפא ג'ונס, עגבניה, פרגו). ״איסוף בלבד״ = ההצעה מוגבלת להזמנה בסניף בלבד (אין אתר/אפליקציה).</p>
   </section>
 </div>
 
 <!-- ============ TAB: Wolt (pizza discovery) ============ -->
 <div class="panel" id="panel-wolt">
   <div class="toolbar" style="margin-top:18px">
+    <button class="action" id="woltFilterBtn" onclick="toggleWoltSelected()">🍕 רק רשתות נבחרות</button>
     <button class="action" onclick="exportWoltExcel()">⬇ ייצוא וולט לאקסל</button>
   </div>
   <section>
@@ -236,6 +331,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
       <select id="ai_category"></select>
       <textarea id="ai_summary" rows="3" placeholder="תיאור / תקציר *" style="background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:8px;font-family:inherit;font-size:.85rem"></textarea>
       <input id="ai_evidence" placeholder="עדות להצלחה (מכירות / engagement / פרסים)">
+      <input id="ai_tags" placeholder="תגיות מופרדות בפסיק (למשל: רשתות חברתיות, גיימיפיקציה)">
       <input id="ai_url" placeholder="קישור למקור (אופציונלי)">
       <div style="display:flex;gap:8px;align-items:center">
         <button class="action" onclick="submitIdea()">שמור רעיון</button>
@@ -245,8 +341,26 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </div>
   <section>
     <h2>רעיונאות — בנק רעיונות שיווקיים <span id="ideasCount" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <div class="smartbox">
+      <div class="row">
+        <span style="font-size:1.1rem">🔍</span>
+        <input type="search" id="ideaSearch" placeholder="כתוב אתגר שיווקי — למשל: איך למשוך צעירים בשעות שפל?">
+        <button class="action" onclick="document.getElementById('ideaSearch').focus()">מצא רעיונות</button>
+        <button class="action" onclick="clearIdeaSearch()" title="נקה חיפוש">✕ נקה</button>
+      </div>
+      <div class="hint">
+        חיפוש חכם: תאר בעברית חופשית את האתגר, והמערכת תדרג את הרעיונות המתאימים ביותר במאגר (עם הרחבת מושגים).
+        דוגמאות:
+        <span class="ex" onclick="setSmart('להגדיל מכירות בשעות שפל')">שעות שפל</span>
+        <span class="ex" onclick="setSmart('לחזק נאמנות לקוחות ומועדון')">נאמנות לקוחות</span>
+        <span class="ex" onclick="setSmart('למשוך קהל צעיר ברשתות חברתיות')">קהל צעיר</span>
+        <span class="ex" onclick="setSmart('שיתוף פעולה עם מותג לחשיפה ויראלית')">שיתוף פעולה ויראלי</span>
+        <span class="ex" onclick="setSmart('להשיק מוצר חדש לזמן מוגבל')">השקת מוצר</span>
+        <span class="ex" onclick="setSmart('להגדיל הזמנות דיגיטליות ומשלוחים')">דיגיטל ומשלוחים</span>
+      </div>
+    </div>
+    <div id="ideaSmartNote" class="smartnote" style="display:none"></div>
     <div class="controls">
-      <input type="search" id="ideaSearch" placeholder="חיפוש חופשי (מותג / קמפיין / תקציר)…" style="min-width:220px">
       <select id="ideaBrand"><option value="">כל המותגים</option></select>
       <select id="ideaCategory"><option value="">כל הקטגוריות</option></select>
       <select id="ideaSource"><option value="">כל המקורות</option></select>
@@ -257,8 +371,27 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
         <option value="low">עדות מוגבלת</option>
       </select>
       <button class="action" id="ideaTodayBtn" onclick="toggleIdeaToday()">📅 היום נאסף</button>
+      <button class="action" id="ideaFavBtn" onclick="toggleFavOnly()">⭐ רק מסומנים</button>
+    </div>
+    <div style="font-size:.72rem;color:var(--muted);margin:8px 0 2px;line-height:1.7">
+      💡 בכל כרטיס: לחצן <b>☆ מעניין</b> שומר את הרעיון לצפייה מאוחר יותר (לחצן <b>⭐ רק מסומנים</b> מציג רק אותם).
+      לחיצה על <b>תג</b> מחפשת לפיו — לחיצה שנייה מבטלת.
     </div>
     <div id="ideasList" class="idea-cards"><div class="no-data">טוען…</div></div>
+  </section>
+  <section>
+    <h2>🧭 הנחיות לחיפוש עתידי <span style="font-size:.75rem;color:var(--muted);font-weight:400">· כוונו את האיסוף היומי לצרכים שלכם</span></h2>
+    <div style="max-width:720px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px;margin-top:8px">
+      <div style="font-size:.8rem;color:var(--muted);line-height:1.7;margin-bottom:8px">
+        כתבו במילים שלכם על מה להתמקד בסריקה היומית — נושאים, קטגוריות, קהלים או מותגים.
+        האיסוף האוטומטי יוסיף חיפושים לפי ההנחיות ויתעדף רעיונות רלוונטיים. שורה לכל נושא.
+      </div>
+      <textarea id="dir_text" rows="5" placeholder="לדוגמה:&#10;התמקד בתוכניות נאמנות ומועדוני לקוחות&#10;רעיונות למשלוחים ודיגיטל&#10;מבצעים לשעות שפל / צהריים&#10;קמפיינים לקהל צעיר ברשתות חברתיות&#10;פיצה טבעונית / בריאה" style="width:100%;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:10px;font-family:inherit;font-size:.85rem;line-height:1.8;box-sizing:border-box"></textarea>
+      <div style="display:flex;gap:8px;align-items:center;margin-top:10px">
+        <button class="action" onclick="saveDirectives()">💾 שמור הנחיות</button>
+        <span id="dir_msg" style="font-size:.8rem;color:var(--muted)"></span>
+      </div>
+    </div>
   </section>
   <section>
     <h2>מקורות <span style="font-size:.75rem;color:var(--muted);font-weight:400">· מובנים + שהוספת</span></h2>
@@ -272,6 +405,16 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
         </select>
         <input id="src_name" placeholder="שם המקור *">
         <input id="src_url" placeholder="קישור (לאונליין) או מיקום הקובץ/הערה (לאופליין)">
+        <div id="src_drop" style="display:none">
+          <div id="src_dropzone" onclick="document.getElementById('src_file').click()"
+               style="border:2px dashed var(--border);border-radius:10px;padding:16px;text-align:center;cursor:pointer;color:var(--muted);font-size:.82rem;transition:.15s">
+            📎 גררו קובץ לכאן, או <b style="color:var(--accent)">בחרו מהכונן</b>
+            <div style="font-size:.72rem;margin-top:4px;opacity:.8">מסמכי טקסט (txt/md/csv/json) — התוכן נשמר וניתן לחיפוש · קבצים אחרים — נשמר שם הקובץ להפניה</div>
+          </div>
+          <input id="src_file" type="file" style="display:none"
+                 accept=".txt,.md,.csv,.json,.pdf,.doc,.docx,.png,.jpg,.jpeg">
+          <div id="src_fileinfo" style="font-size:.78rem;color:var(--good);margin-top:6px;display:none"></div>
+        </div>
         <div style="display:flex;gap:8px;align-items:center">
           <button class="action" onclick="submitSource()">הוסף מקור</button>
           <span id="src_msg" style="font-size:.8rem;color:var(--muted)"></span>
@@ -295,6 +438,123 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
+<!-- ============ TAB: QSR Magazine daily headlines ============ -->
+<div class="panel" id="panel-qsr">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportQsrExcel()">⬇ ייצוא לאקסל</button>
+    <a class="action" href="https://www.qsrmagazine.com/" target="_blank" rel="noopener" style="text-decoration:none">↗ QSR Magazine</a>
+  </div>
+  <section>
+    <h2>🍕 Chain News — סקירת רשתות <span style="font-size:.72rem;color:var(--muted);font-weight:400">· דומינוס · פיצה האט · פאפא ג'ונס · כתבות QSR הנוגעות לרשתות (מצטבר)</span></h2>
+    <div class="controls">
+      <button class="action" id="qsrChainAll" onclick="qsrSetChain('')">הכל</button>
+      <button class="action" onclick="qsrSetChain('דומינוס')">דומינוס</button>
+      <button class="action" onclick="qsrSetChain('פיצה האט')">פיצה האט</button>
+      <button class="action" onclick="qsrSetChain(&quot;פאפא ג'ונס&quot;)">פאפא ג'ונס</button>
+      <span id="qsrChainMeta" style="font-size:.78rem;color:var(--muted)"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="qsrChainTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>QSR Magazine — כותרות היום <span id="qsrMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">כל הכתבות שפורסמו ב-24 השעות האחרונות — כותרת, תקציר קצר (בעברית) וקישור לכתבה המלאה.</p>
+    <div class="tbl-wrap">
+      <table id="qsrTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>ארכיון מצטבר <span style="font-size:.72rem;color:var(--muted);font-weight:400">· כל הכתבות שנאספו לאורך זמן (העדכני למעלה)</span></h2>
+    <div class="tbl-wrap">
+      <table id="qsrArchiveTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+</div>
+
+<!-- ============ TAB: Press monitoring (restaurants / delivery / pizza) ============ -->
+<div class="panel" id="panel-press">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportPressExcel()">⬇ ייצוא לאקסל</button>
+  </div>
+  <section>
+    <h2>מעקב עיתונות — מסעדות, משלוחי מזון ופיצה <span id="pressMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">כתבות מ-24 השעות האחרונות מהעיתונות הישראלית, בנושאי מסעדות ומשלוחי מזון — בדגש על פיצה.</p>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">מקור:
+        <select id="pressSourceSel" onchange="pressSetSource(this.value)"><option value="">כל המקורות</option></select></label>
+      <button class="action" id="pressPizzaBtn" onclick="pressTogglePizza()">🍕 רק פיצה</button>
+      <span id="pressFilterMeta" style="font-size:.78rem;color:var(--muted)"></span>
+    </div>
+    <div class="tbl-wrap">
+      <table id="pressTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>ארכיון מצטבר <span style="font-size:.72rem;color:var(--muted);font-weight:400">· כל הכתבות שנאספו לאורך זמן (העדכני למעלה)</span></h2>
+    <div class="tbl-wrap">
+      <table id="pressArchiveTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>מקורות <span style="font-size:.75rem;color:var(--muted);font-weight:400">· 6 אתרים מובנים + שהוספת</span></h2>
+    <div id="pressSourcesList" style="font-size:.8rem;color:var(--muted);line-height:1.9;margin-top:8px"></div>
+    <div style="max-width:640px;margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px">
+      <b style="font-size:.85rem">הוספת אתר לסקירה היומית</b>
+      <div style="display:grid;gap:8px;margin-top:10px">
+        <input id="press_src_name" placeholder="שם האתר *">
+        <input id="press_src_url" placeholder="כתובת האתר (הבית או פיד RSS) *">
+        <div style="display:flex;gap:8px;align-items:center">
+          <button class="action" onclick="submitPressSource()">הוסף אתר</button>
+          <span id="press_src_msg" style="font-size:.8rem;color:var(--muted)"></span>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<!-- ============ TAB: TABIT restaurant index ============ -->
+<div class="panel" id="panel-tabit">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportTabitExcel()">⬇ ייצוא לאקסל</button>
+    <a class="action" href="https://madad-il.tabit.cloud/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: madad-il.tabit.cloud</a>
+  </div>
+  <section>
+    <h2>מדד המסעדות של ישראל · TABIT <span id="tabitMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">מדד חודשי (בסיס 100) של ביצועי ענף המסעדות בישראל. גרף וטבלה לאורך זמן.</p>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">אזור:
+        <select id="tabitRegion"></select></label>
+      <span id="tabitStat" style="font-size:.82rem"></span>
+    </div>
+    <div id="tabitChart" class="chartbox"><div class="no-data">טוען…</div></div>
+    <div id="tabitLegend" class="chart-legend"></div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table id="tabitTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>מדד לפי טווח ממוצע-לסועד ושירות <span style="font-size:.72rem;color:var(--muted);font-weight:400">· לפי סגמנט (₪ לסועד) ושעת שירות</span></h2>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">שירות:
+        <select id="tabitService"><option value="noon">צהריים</option><option value="evening">ערב</option></select></label>
+    </div>
+    <div id="tabitBandChart" class="chartbox"><div class="no-data">טוען…</div></div>
+    <div id="tabitBandLegend" class="chart-legend"></div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table id="tabitBandTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+  <section>
+    <h2>מדד פדיון חודשי לפי סוג הזמנה <span style="font-size:.72rem;color:var(--muted);font-weight:400">· שינוי פדיון (%) — ישיבה / דלפק / משלוח · לפי האזור שנבחר למעלה</span></h2>
+    <div id="tabitRedChart" class="chartbox"><div class="no-data">טוען…</div></div>
+    <div id="tabitRedLegend" class="chart-legend"></div>
+    <div class="tbl-wrap" style="margin-top:12px">
+      <table id="tabitRedTable"><thead></thead><tbody></tbody></table>
+    </div>
+  </section>
+</div>
+
 <footer>
   מחירים נאספים אוטומטית מדי יום ב-17:00 (שעון ישראל) ע"י GitHub Actions ונשמרים ב-Firebase Firestore.<br>
   לצורכי השוואה בלבד.
@@ -304,8 +564,11 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
-import { getFirestore, collection, getDocs, doc, getDoc, query, orderBy, addDoc }
+import { getFirestore, collection, getDocs, doc, getDoc, setDoc, query, orderBy, addDoc }
   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+// Hides the "השוואת רשתות" tab (data/code stay intact) — flip back to true to restore it.
+const SHOW_NETWORK_COMPARISON = false;
 
 // Main comparison = the three menu chains only. Pais Plus and Wolt have their
 // own tabs with their own procedures.
@@ -334,12 +597,69 @@ const BRANCH_CHAINS = [
 let history = [];      // [{date,timestamp,chains:{...}}]
 let statusDoc = null;  // meta/status
 let ppAll = [];        // [{date, offers:[]}, ...] — ALL Pais Plus dates
+let ppGenAll = [];     // [{date, offers:[]}, ...] — Pais Plus GENERAL (homepage), all dates
 let woltAll = [];      // [{date, offers:[]}, ...] — ALL Wolt dates
 let branchAll = [];    // [{date, chains:{key:{total,tlv,source}}}, ...]
 let marketingIdeas = [];  // [{id, brand, campaign_name, category, summary, ...}]
 let userSources = [];     // [{id, name, kind:'online'|'offline', url}]
+let offerLive = null;     // latest scraped offer_comparison doc (or null)
+let offerHist = [];       // all offer_comparison docs, ascending by date
+let tabitData = null;     // TABIT restaurant-index {general:[], byband:[], scraped_at}
+let _tabitInit = false;
+let qsrDays = [];         // QSR Magazine daily docs, ascending by date
+let qsrChain = [];        // QSR Chain News — accumulating items for the 3 chains
+let qsrChainFilter = '';  // '' = all three chains; else a specific chain name
+let pressDays = [];        // Press monitoring daily docs, ascending by date
+let pressUserSources = []; // user-added press_sources docs
+let pressSourceFilter = '';// '' = all sources; else a source key
+let pressPizzaOnly = false;
 let ideaTodayOnly = false;
 let usingFallback = false;
+
+// ---- Pais Plus filters (size / chain / pickup-only) --------------------------
+let ppSizeFilter = 'family';        // 'family' | 'personal' | 'all'
+let ppChainSelectedOnly = true;     // true = "רשתות נבחרות" only, false = "הכל"
+let ppPickupOnlyFilter = false;     // true = "איסוף בלבד" only, false = "הכל"
+const PP_SELECTED_KW = ['דומינו','פיצה האט',"פאפא ג'",'עגבניה','פרגו'];
+// Matches on company AND the offer's own text — so offers the scraper hadn't
+// yet identified by company name (e.g. before a keyword was added) still
+// filter correctly by scanning what's actually printed on the card.
+function isPpSelectedChain(o){
+  const hay = `${o.company||''} ${o.offer_text||''} ${o.full_text||''}`.toLowerCase();
+  return PP_SELECTED_KW.some(k=>hay.includes(k.toLowerCase()));
+}
+// Pizza size is inferred from the offer's own text — "אישית" (personal) vs
+// "משפחתית" (family); offers that mention neither are unclassified (null).
+function pizzaSizeOf(o){
+  const t = `${o.offer_text||''} ${o.full_text||''}`;
+  if(t.includes('אישי')) return 'personal';
+  if(t.includes('משפחתי')) return 'family';
+  return null;
+}
+// The scraper's card sub-title ("additional_info") says exactly "להזמנה
+// בסניפים" when the offer is redeemable in-branch only (no site/app option).
+function isPpPickupOnly(o){ return (o.additional_info||'').trim()==='להזמנה בסניפים'; }
+function ppFilterOffers(offers){
+  return (offers||[]).filter(o=>{
+    if(ppChainSelectedOnly && !isPpSelectedChain(o)) return false;
+    if(ppSizeFilter!=='all' && pizzaSizeOf(o)!==ppSizeFilter) return false;
+    if(ppPickupOnlyFilter && !isPpPickupOnly(o)) return false;
+    return true;
+  });
+}
+
+// ---- Pais Plus GENERAL (homepage) filters — same logic, separate state -----
+let ppGenSizeFilter = 'family';
+let ppGenChainSelectedOnly = true;
+let ppGenPickupOnlyFilter = false;
+function ppGenFilterOffers(offers){
+  return (offers||[]).filter(o=>{
+    if(ppGenChainSelectedOnly && !isPpSelectedChain(o)) return false;
+    if(ppGenSizeFilter!=='all' && pizzaSizeOf(o)!==ppGenSizeFilter) return false;
+    if(ppGenPickupOnlyFilter && !isPpPickupOnly(o)) return false;
+    return true;
+  });
+}
 
 // Score an offer by the row it appears in on the Pais Plus page: higher row =
 // more points, and the top two rows score MUCH higher than the rest.
@@ -353,7 +673,7 @@ function offerScore(row){
 // ---- global period filter (applies to all tabs) ----------------------------
 let period = { mode:'all', from:'', to:'' };
 function rangeBounds(){
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...ppGenAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   const maxD = allDates.length ? allDates[allDates.length-1] : null;
   if(period.mode==='all' || !maxD) return null;
   if(period.mode==='custom') return [period.from||'0000-00-00', period.to||'9999-12-31'];
@@ -365,7 +685,28 @@ function rangeBounds(){
 function inRange(date){ const b=rangeBounds(); return !b ? true : (date>=b[0] && date<=b[1]); }
 function viewHistory(){ return history.filter(e=>inRange(e.date)); }
 function viewPpAll(){ return ppAll.filter(d=>inRange(d.date)); }
-function viewWolt(){ return woltAll.filter(d=>inRange(d.date)); }
+function viewPpGenAll(){ return ppGenAll.filter(d=>inRange(d.date)); }
+// Wolt "selected chains" filter — the 8 chains the user tracks (Hebrew + English).
+let woltSelectedOnly = false;
+const WOLT_SELECTED_KW = ['דומינו','domino', 'פיצה האט','pizza hut', "פאפא ג'",'papa john',
+  'פרגו','prego', 'עגבניה','agvania', 'שמש','shemesh', 'סטורי','story', 'ביג אפל','big apple'];
+function isSelectedChain(name){
+  const n=(name||'').toLowerCase();
+  return WOLT_SELECTED_KW.some(k=>n.includes(k.toLowerCase()));
+}
+function viewWolt(){
+  const days=woltAll.filter(d=>inRange(d.date));
+  if(!woltSelectedOnly) return days;
+  // keep the original structure — only trim each day's offers to the selected chains
+  return days.map(d=>({...d, offers:(d.offers||[]).filter(o=>isSelectedChain(o.company))}));
+}
+window.toggleWoltSelected=function(){
+  woltSelectedOnly=!woltSelectedOnly;
+  const b=document.getElementById('woltFilterBtn');
+  b.textContent = woltSelectedOnly ? '📋 הצג הכל' : '🍕 רק רשתות נבחרות';
+  b.style.background = woltSelectedOnly ? 'var(--accent)' : '';
+  renderWolt(); renderWoltDaily(); renderWoltHistory();
+};
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
@@ -421,6 +762,12 @@ async function loadFromFirestore(){
     const ps=await getDocs(query(collection(db,'paisplus_offers'), orderBy('date')));
     ppAll = ps.docs.map(d=>d.data());
   }catch(e){}
+  // Pais Plus GENERAL (homepage) offers — ALL dates
+  let ppGenAll=[];
+  try{
+    const pgs=await getDocs(query(collection(db,'paisplus_general_offers'), orderBy('date')));
+    ppGenAll = pgs.docs.map(d=>d.data());
+  }catch(e){}
   // Wolt offers — ALL dates
   let woltAll=[];
   try{
@@ -445,16 +792,60 @@ async function loadFromFirestore(){
     const ss=await getDocs(collection(db,'marketing_sources'));
     userSources = ss.docs.map(d=>({id:d.id, ...d.data()}));
   }catch(e){}
-  return { hist, status, ppAll, woltAll, branchAll, ideas, userSources };
+  // Search directives (user guidance for future collection)
+  let directives='';
+  try{
+    const dd=await getDoc(doc(db,'marketing_config','directives'));
+    if(dd.exists()) directives = dd.data().text||'';
+  }catch(e){}
+  // Offer comparison — all daily docs (history) + latest
+  let offerLive=null, offerHist=[];
+  try{
+    const os=await getDocs(collection(db,'offer_comparison'));
+    offerHist = os.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>String(a.date||a.id).localeCompare(String(b.date||b.id)));
+    offerLive = offerHist.length ? offerHist[offerHist.length-1] : null;
+  }catch(e){}
+  // TABIT restaurant index
+  let tabit=null;
+  try{
+    const td=await getDoc(doc(db,'tabit_index','latest'));
+    if(td.exists()) tabit=td.data();
+  }catch(e){}
+  // QSR Magazine daily headlines
+  let qsrDays=[];
+  try{
+    const qs=await getDocs(collection(db,'qsr_daily'));
+    qsrDays = qs.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>String(a.date||a.id).localeCompare(String(b.date||b.id)));
+  }catch(e){}
+  // QSR Chain News — isolated accumulating review for the 3 chains
+  let qsrChain=[];
+  try{
+    const cn=await getDoc(doc(db,'qsr_chain_news','all'));
+    if(cn.exists()) qsrChain = cn.data().items||[];
+  }catch(e){}
+  // Press monitoring — daily docs (restaurants/delivery/pizza) + user-added sources
+  let pressDays=[], pressUserSources=[];
+  try{
+    const pd=await getDocs(collection(db,'press_daily'));
+    pressDays = pd.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>String(a.date||a.id).localeCompare(String(b.date||b.id)));
+  }catch(e){}
+  try{
+    const ps=await getDocs(collection(db,'press_sources'));
+    pressUserSources = ps.docs.map(d=>({id:d.id, ...d.data()}));
+  }catch(e){}
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources };
 }
 
 async function loadFallback(){
-  const out={hist:[],status:null,ppAll:[],woltAll:[],branchAll:[]};
+  const out={hist:[],status:null,ppAll:[],ppGenAll:[],woltAll:[],branchAll:[]};
   for(const u of ['data/all_prices.json','../data/all_prices.json','/data/all_prices.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hist=await r.json(); break; } }catch(e){}
   }
   for(const u of ['data/paisplus/offers.json','../data/paisplus/offers.json','/data/paisplus/offers.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ppAll=groupAllOffers(await r.json()); break; } }catch(e){}
+  }
+  for(const u of ['data/paisplus_general/offers.json','../data/paisplus_general/offers.json','/data/paisplus_general/offers.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ppGenAll=groupAllOffers(await r.json()); break; } }catch(e){}
   }
   for(const u of ['data/wolt_offers.json','../data/wolt_offers.json','/data/wolt_offers.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.woltAll=groupAllOffers(await r.json()); break; } }catch(e){}
@@ -476,21 +867,22 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,woltAll,branchAll,ideas,userSources} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
+      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
+        if(!ppGenAll||!ppGenAll.length) ppGenAll=fb.ppGenAll;
         if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
       }
-      return {hist,status,ppAll,woltAll,branchAll,ideas,userSources};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[] };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[] };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -594,62 +986,105 @@ function renderPaisplus(){
   const thead=document.querySelector('#ppTable thead');
   const tbody=document.querySelector('#ppTable tbody');
   document.getElementById('ppDate').textContent = latest?.date ? `· נכון ל-${latest.date}` : '';
-  const cols=['תאריך','שורה','ניקוד','מועדפת','חברה','הצעה','קטגוריה','מחיר','קישור'];
+  const cols=['תאריך','שורה','מועדפת','חברה','הצעה','קטגוריה','איסוף בלבד','מחיר','קישור'];
   thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
-  // sort by score (row) descending, then price ascending
-  const offers=(latest?.offers||[]).slice().sort((a,b)=>
-    offerScore(b.row)-offerScore(a.row) || (a.price_value??1e9)-(b.price_value??1e9));
-  if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין נתונים עדיין</td></tr>`; return; }
+  const offers=ppFilterOffers(latest?.offers).slice().sort((a,b)=>
+    (Number(a.row)||99)-(Number(b.row)||99) || (a.price_value??1e9)-(b.price_value??1e9));
+  if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין הצעות התואמות את הסינון הנוכחי</td></tr>`; return; }
   tbody.innerHTML=offers.map(o=>{
-    const score=offerScore(o.row);
     const pref=o.is_preferred?`<span class="pref-badge">מועדפת</span>`:'—';
     const price=o.price_text || (o.price_value!=null?fmt(o.price_value):'—');
     const link=o.product_url?`<a class="offer-link" href="${o.product_url}" target="_blank" rel="noopener">לצפייה</a>`:'—';
-    const topRow = (Number(o.row)||99)<=2;
+    const pickup=isPpPickupOnly(o)?'כן':'לא';
     return `<tr>
       <td>${o.date||latest.date||'—'}</td>
       <td>${o.row??'—'}</td>
-      <td class="price ${topRow?'best':''}">${score}</td>
       <td>${pref}</td>
       <td class="rowhead">${o.company||'—'}</td>
       <td class="rowhead" style="font-weight:400">${o.offer_text||o.full_text||'—'}</td>
       <td>${o.category||'—'}</td>
+      <td>${pickup}</td>
       <td class="price">${price}</td>
       <td>${link}</td></tr>`;
   }).join('');
 }
+window.setPpSize=function(v){ ppSizeFilter=v; renderPaisplus(); };
+window.togglePpChainFilter=function(){
+  ppChainSelectedOnly=!ppChainSelectedOnly;
+  const b=document.getElementById('ppChainFilterBtn');
+  b.textContent = ppChainSelectedOnly ? '📋 הכל' : '🍕 רשתות נבחרות';
+  b.style.background = ppChainSelectedOnly ? 'var(--accent)' : '';
+  renderPaisplus();
+};
+window.togglePpPickupOnly=function(){
+  ppPickupOnlyFilter=!ppPickupOnlyFilter;
+  const b=document.getElementById('ppPickupBtn');
+  b.textContent = ppPickupOnlyFilter ? '📋 הכל' : '🏬 איסוף בלבד';
+  b.style.background = ppPickupOnlyFilter ? 'var(--accent)' : '';
+  renderPaisplus();
+};
 
-// Cumulative history: total accumulated score per company across ALL dates.
-function renderPaisplusHistory(){
-  const ppAll=viewPpAll();
-  const thead=document.querySelector('#ppHistTable thead');
-  const tbody=document.querySelector('#ppHistTable tbody');
-  // Each score sits next to the number of ads that produced it.
-  const cols=['חברה','ניקוד מצטבר','מס\' מודעות','ניקוד אחרון','מודעות אחרונות','ימים'];
+// ---- Pais Plus GENERAL (homepage) tab — mirrors the Pais Plus tab above ----
+function renderPaisplusGeneral(){
+  const ppGenAllView=viewPpGenAll();
+  const latest = ppGenAllView.length ? ppGenAllView[ppGenAllView.length-1] : null;
+  const thead=document.querySelector('#ppGenTable thead');
+  const tbody=document.querySelector('#ppGenTable tbody');
+  document.getElementById('ppGenDate').textContent = latest?.date ? `· נכון ל-${latest.date}` : '';
+  const cols=['תאריך','שורה','מועדפת','חברה','הצעה','קטגוריה','איסוף בלבד','מחיר','קישור'];
   thead.innerHTML=`<tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr>`;
-  const agg={};  // company -> {score, ads(count), days:Set}
-  ppAll.forEach(day=>{
-    (day.offers||[]).forEach(o=>{
-      const co=o.company||'לא ידוע';
-      const a=agg[co]||(agg[co]={score:0,ads:0,days:new Set()});
-      a.score+=offerScore(o.row); a.ads++; a.days.add(day.date);
-    });
-  });
-  // most-recent day: score + number of ads per company
-  const lastScore={}, lastAds={};
-  if(ppAll.length){ (ppAll[ppAll.length-1].offers||[]).forEach(o=>{ const co=o.company||'לא ידוע';
-    lastScore[co]=(lastScore[co]||0)+offerScore(o.row); lastAds[co]=(lastAds[co]||0)+1; }); }
-  const rows=Object.entries(agg).map(([co,a])=>({co,score:a.score,ads:a.ads,days:a.days.size,
-    last:lastScore[co]||0, lastAds:lastAds[co]||0})).sort((x,y)=>y.score-x.score);
-  if(!rows.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין היסטוריה עדיין</td></tr>`; return; }
-  tbody.innerHTML=rows.map((r,i)=>`<tr>
-    <td class="rowhead">${i===0?'🏆 ':''}${r.co}</td>
-    <td class="price ${i===0?'best':''}">${r.score}</td>
-    <td>${r.ads}</td>
-    <td class="price">${r.last||'—'}</td>
-    <td>${r.lastAds||'—'}</td>
-    <td>${r.days}</td></tr>`).join('');
+  const offers=ppGenFilterOffers(latest?.offers).slice().sort((a,b)=>
+    (Number(a.row)||99)-(Number(b.row)||99) || (a.price_value??1e9)-(b.price_value??1e9));
+  if(!offers.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${cols.length}">אין הצעות התואמות את הסינון הנוכחי</td></tr>`; return; }
+  tbody.innerHTML=offers.map(o=>{
+    const pref=o.is_preferred?`<span class="pref-badge">מועדפת</span>`:'—';
+    const price=o.price_text || (o.price_value!=null?fmt(o.price_value):'—');
+    const link=o.product_url?`<a class="offer-link" href="${o.product_url}" target="_blank" rel="noopener">לצפייה</a>`:'—';
+    const pickup=isPpPickupOnly(o)?'כן':'לא';
+    return `<tr>
+      <td>${o.date||latest.date||'—'}</td>
+      <td>${o.row??'—'}</td>
+      <td>${pref}</td>
+      <td class="rowhead">${o.company||'—'}</td>
+      <td class="rowhead" style="font-weight:400">${o.offer_text||o.full_text||'—'}</td>
+      <td>${o.category||'—'}</td>
+      <td>${pickup}</td>
+      <td class="price">${price}</td>
+      <td>${link}</td></tr>`;
+  }).join('');
 }
+window.setPpGenSize=function(v){ ppGenSizeFilter=v; renderPaisplusGeneral(); };
+window.togglePpGenChainFilter=function(){
+  ppGenChainSelectedOnly=!ppGenChainSelectedOnly;
+  const b=document.getElementById('ppGenChainFilterBtn');
+  b.textContent = ppGenChainSelectedOnly ? '📋 הכל' : '🍕 רשתות נבחרות';
+  b.style.background = ppGenChainSelectedOnly ? 'var(--accent)' : '';
+  renderPaisplusGeneral();
+};
+window.togglePpGenPickupOnly=function(){
+  ppGenPickupOnlyFilter=!ppGenPickupOnlyFilter;
+  const b=document.getElementById('ppGenPickupBtn');
+  b.textContent = ppGenPickupOnlyFilter ? '📋 הכל' : '🏬 איסוף בלבד';
+  b.style.background = ppGenPickupOnlyFilter ? 'var(--accent)' : '';
+  renderPaisplusGeneral();
+};
+window.exportPaisplusGeneralExcel=function(){
+  const ppGenAllView=viewPpGenAll();
+  if(!ppGenAllView.length){ alert('אין נתוני פייס פלוס (כללי) לייצוא'); return; }
+  const latest=ppGenAllView[ppGenAllView.length-1];
+  const oHead=['תאריך','שורה','מועדפת','חברה','הצעה','קטגוריה','איסוף בלבד','מחיר','קישור'];
+  const oRows=[oHead];
+  ppGenFilterOffers(latest?.offers).slice()
+    .sort((a,b)=>(Number(a.row)||99)-(Number(b.row)||99)||(a.price_value??1e9)-(b.price_value??1e9))
+    .forEach(o=>oRows.push([o.date||latest.date, o.row??'',
+      o.is_preferred?'כן':'', o.company||'', o.offer_text||o.full_text||'',
+      o.category||'', isPpPickupOnly(o)?'כן':'לא', o.price_text||(o.price_value??''), o.product_url||'']));
+  const ws1=XLSX.utils.aoa_to_sheet(oRows);
+  ws1['!cols']=[{wch:11},{wch:6},{wch:8},{wch:14},{wch:40},{wch:22},{wch:10},{wch:14},{wch:36}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws1,'הצעות');
+  XLSX.writeFile(wb,`paisplus_general_${new Date().toISOString().slice(0,10)}.xlsx`);
+};
 
 // ---- branch counts tab -------------------------------------------------------
 function renderBranches(){
@@ -689,38 +1124,6 @@ window.exportBranchesExcel=function(){
   XLSX.utils.book_append_sheet(wb,ws,'כמות סניפים');
   XLSX.writeFile(wb,`branches_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
-
-// Build the daily score matrix: {dates:[...], companies:[{co, byDate:{}, total}]}
-function ppDailyMatrix(){
-  const ppAll=viewPpAll();
-  const dates = ppAll.map(d=>d.date);
-  const map={};  // co -> {byDate:{}, total}
-  ppAll.forEach(day=>{
-    (day.offers||[]).forEach(o=>{
-      const co=o.company||'לא ידוע';
-      const c=map[co]||(map[co]={byDate:{},total:0});
-      const s=offerScore(o.row);
-      c.byDate[day.date]=(c.byDate[day.date]||0)+s;
-      c.total+=s;
-    });
-  });
-  const companies=Object.entries(map).map(([co,c])=>({co,byDate:c.byDate,total:c.total}))
-    .sort((a,b)=>b.total-a.total);
-  return {dates, companies};
-}
-
-// Daily table: total score per company for each day (company × date).
-function renderPaisplusDaily(){
-  const thead=document.querySelector('#ppDailyTable thead');
-  const tbody=document.querySelector('#ppDailyTable tbody');
-  const {dates, companies}=ppDailyMatrix();
-  thead.innerHTML=`<tr><th>חברה</th>${dates.map(d=>`<th>${d}</th>`).join('')}<th>סה"כ</th></tr>`;
-  if(!companies.length){ tbody.innerHTML=`<tr><td class="no-data" colspan="${dates.length+2}">אין נתונים עדיין</td></tr>`; return; }
-  tbody.innerHTML=companies.map((c,i)=>`<tr>
-    <td class="rowhead">${i===0?'🏆 ':''}${c.co}</td>
-    ${dates.map(d=>`<td class="price">${c.byDate[d]||'—'}</td>`).join('')}
-    <td class="price ${i===0?'best':''}">${c.total}</td></tr>`).join('');
-}
 
 // ---- Wolt tab (mirrors Pais Plus) --------------------------------------------
 function renderWolt(){
@@ -836,8 +1239,40 @@ window.exportWoltExcel=function(){
 
 // ---- Ideas tab (marketing idea bank) ----------------------------------------
 const IDEA_SOURCES = ["QSR Magazine","Nation's Restaurant News","Restaurant Business Magazine",
-  "Ad Age","Marketing Dive","The Drum","Adweek","Cannes Lions","Clio Awards","Effie Awards"];
+  "Ad Age","Marketing Dive","The Drum","Adweek"];
+// 37 fast-food/pizza brands across 10 markets, tracked via news-search feeds.
+const IDEA_BRAND_FLAGS = "🇺🇸 🇬🇧 🇨🇦 🇦🇺 🇩🇪 🇫🇷 🇮🇹 🇧🇷 🇮🇳 🇯🇵";
 let _ideaFiltersInit = false;
+
+// "מעניין" favourites persist in this browser (localStorage).
+let ideaFavs = new Set(JSON.parse(localStorage.getItem('ideaFavs')||'[]'));
+let ideaFavOnly = false;
+function saveFavs(){ localStorage.setItem('ideaFavs', JSON.stringify([...ideaFavs])); }
+window.toggleFav=function(id){
+  if(ideaFavs.has(id)) ideaFavs.delete(id); else ideaFavs.add(id);
+  saveFavs(); renderIdeas();
+};
+window.toggleFavOnly=function(){
+  ideaFavOnly=!ideaFavOnly;
+  document.getElementById('ideaFavBtn').style.background = ideaFavOnly ? 'var(--accent)' : '';
+  renderIdeas();
+};
+// tags may be an array (new) or a comma string (old / manual) — normalise to array.
+function ideaTags(i){
+  const t=i&&i.tags;
+  if(Array.isArray(t)) return t.map(x=>String(x).trim()).filter(Boolean);
+  if(typeof t==='string'&&t) return t.split(/[,،;|]+/).map(s=>s.trim()).filter(Boolean);
+  return [];
+}
+window.searchTag=function(tag){
+  const s=document.getElementById('ideaSearch');
+  // click the same tag again → clear (toggle off); otherwise search by it.
+  s.value = (s.value.trim()===tag) ? '' : tag;
+  renderIdeas();
+};
+window.clearIdeaSearch=function(){
+  document.getElementById('ideaSearch').value=''; renderIdeas();
+};
 
 function initIdeaFilters(){
   if(_ideaFiltersInit) return;
@@ -851,10 +1286,15 @@ function initIdeaFilters(){
   ['ideaSearch','ideaBrand','ideaCategory','ideaSource','ideaConf'].forEach(id=>
     document.getElementById(id).addEventListener('input', renderIdeas));
   renderSources();
+  setupSourceForm();
 }
 
 function renderSources(){
-  const builtin = IDEA_SOURCES.map(s=>`• ${esc(s)} <span style="opacity:.6">(מובנה)</span>`);
+  const builtin = IDEA_SOURCES.map(s=>`• ${esc(s)} <span style="opacity:.6">(חדשות שיווק · מובנה)</span>`);
+  builtin.push(`• 🍕 37 רשתות פיצה/מזון מהיר מ-10 מדינות ${IDEA_BRAND_FLAGS} `
+    + `<span style="opacity:.6">(מעקב דרך חיפוש חדשות · מובנה)</span>`);
+  builtin.push(`• 🏆 ארכיוני פרסים (Cannes Lions / Clio / Effie) ואתרים נוספים — `
+    + `<span style="opacity:.6">הוסף ידנית בטופס למטה</span>`);
   const user = userSources.map(s=>{
     const tag = s.kind==='online' ? '🌐 אונליין' : '📄 אופליין';
     const link = (s.kind==='online' && s.url)
@@ -865,6 +1305,39 @@ function renderSources(){
   document.getElementById('ideaSources').innerHTML = [...builtin, ...user].join('<br>');
 }
 
+// ---- offline-source file attach (drag-drop / browse the drive) --------------
+let _srcFile = null;   // {name, type, size, content}
+const TEXT_EXT=/\.(txt|md|csv|json|log|tsv)$/i;
+function setupSourceForm(){
+  const kindSel=document.getElementById('src_kind');
+  const drop=document.getElementById('src_drop');
+  const zone=document.getElementById('src_dropzone');
+  const fileInput=document.getElementById('src_file');
+  if(!kindSel || kindSel.dataset.init) return; kindSel.dataset.init='1';
+  const syncKind=()=>{ drop.style.display = kindSel.value==='offline' ? 'block' : 'none'; };
+  kindSel.addEventListener('change', syncKind); syncKind();
+  const handle=async file=>{
+    if(!file) return;
+    let content='';
+    if(TEXT_EXT.test(file.name) || (file.type||'').startsWith('text/')){
+      try{ content=(await file.text()).slice(0,200000); }catch(e){}
+    }
+    _srcFile={name:file.name, type:file.type||'', size:file.size, content};
+    const info=document.getElementById('src_fileinfo');
+    info.style.display='block';
+    info.textContent=`📎 ${file.name} · ${(file.size/1024).toFixed(0)}KB`
+      + (content?` · נקרא טקסט (${content.length} תווים)`:' · יישמר כהפניה (שם קובץ)');
+    if(!document.getElementById('src_name').value.trim())
+      document.getElementById('src_name').value=file.name.replace(/\.[^.]+$/,'');
+  };
+  fileInput.addEventListener('change', e=>handle(e.target.files[0]));
+  ['dragenter','dragover'].forEach(ev=>zone.addEventListener(ev,e=>{
+    e.preventDefault(); zone.style.borderColor='var(--accent)'; zone.style.background='var(--surface2)'; }));
+  ['dragleave','drop'].forEach(ev=>zone.addEventListener(ev,e=>{
+    e.preventDefault(); zone.style.borderColor='var(--border)'; zone.style.background=''; }));
+  zone.addEventListener('drop', e=>{ if(e.dataTransfer.files[0]) handle(e.dataTransfer.files[0]); });
+}
+
 window.submitSource=async function(){
   const msg=document.getElementById('src_msg');
   const name=document.getElementById('src_name').value.trim();
@@ -872,17 +1345,38 @@ window.submitSource=async function(){
   const url=document.getElementById('src_url').value.trim();
   if(!name){ msg.textContent='חובה למלא שם מקור.'; msg.style.color='var(--bad)'; return; }
   if(kind==='online' && !url){ msg.textContent='למקור אונליין חובה קישור.'; msg.style.color='var(--bad)'; return; }
+  if(kind==='offline' && !url && !_srcFile){ msg.textContent='למקור אופליין צרפו קובץ או כתבו מיקום/הערה.'; msg.style.color='var(--bad)'; return; }
   msg.textContent='שומר…'; msg.style.color='var(--muted)';
   try{
     if(!isConfigured()) throw new Error('Firebase לא מוגדר');
     const rec={name, kind, url, added_at:new Date().toISOString()};
+    if(kind==='offline' && _srcFile){
+      rec.file_name=_srcFile.name; rec.file_type=_srcFile.type; rec.file_size=_srcFile.size;
+      if(_srcFile.content) rec.file_text=_srcFile.content;
+      if(!rec.url) rec.url=_srcFile.name;
+    }
     const ref=await addDoc(collection(getDb(),'marketing_sources'), rec);
     userSources.push({id:ref.id, ...rec});
     renderSources();
     document.getElementById('src_name').value=''; document.getElementById('src_url').value='';
+    document.getElementById('src_file').value=''; document.getElementById('src_fileinfo').style.display='none';
+    _srcFile=null;
     msg.textContent = kind==='online'
       ? 'נשמר ✓ — ייכלל בסריקה היומית הבאה'
       : 'נשמר ✓ — הזן ממנו רעיונות דרך "הוסף רעיון ידנית"';
+    msg.style.color='var(--good)';
+  }catch(e){ msg.textContent='שגיאה: '+e.message; msg.style.color='var(--bad)'; }
+};
+
+window.saveDirectives=async function(){
+  const msg=document.getElementById('dir_msg');
+  const text=(document.getElementById('dir_text').value||'').slice(0,20000);
+  msg.textContent='שומר…'; msg.style.color='var(--muted)';
+  try{
+    if(!isConfigured()) throw new Error('Firebase לא מוגדר');
+    await setDoc(doc(getDb(),'marketing_config','directives'),
+      {text, updated_at:new Date().toISOString()}, {merge:true});
+    msg.textContent='נשמר ✓ — ישפיע על הסריקה היומית הבאה';
     msg.style.color='var(--good)';
   }catch(e){ msg.textContent='שגיאה: '+e.message; msg.style.color='var(--bad)'; }
 };
@@ -893,6 +1387,60 @@ window.toggleIdeaToday=function(){
 };
 
 function esc(s){ return (s==null?'':String(s)).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c])); }
+
+// ---- smart search engine (client-side, free, offline) -----------------------
+window.setSmart=function(q){
+  const el=document.getElementById('ideaSearch'); el.value=q; renderIdeas(); el.focus();
+};
+const HE_STOP=new Set('של את זה עם על אל כי גם כך יש אין הם הן אני אתה אנחנו לא כן מה מי איך למה מתי איפה כדי או אבל אם היה הייתה הוא היא זו זאת אלו אלה כל כמה יותר פחות מאוד רק עוד אז אצל בין תוך לפי כמו שלי שלך שלנו לנו להם רוצה צריך רוצים איזה סביב עבור אנו יכול צריכים'.split(/\s+/));
+const EN_STOP=new Set('the a an of to for and or in on at as by with how i we my our you your is are be that this it from want need help me get make more less new use using over into about can'.split(/\s+/));
+// map a challenge concept → related terms (Hebrew + English) to widen recall.
+const CONCEPTS=[
+  {t:['שפל','מת','חלש','שקט','צהריי','אחהצ','בוקר','לילה','ריק'], e:['happy hour','מבצע','הנחה','שעות','off peak','אחר הצהריים','בוקר','ערב','דחיפה','slow','שקט']},
+  {t:['נאמנ','מועדון','חוזר','מנוי','ריטנשן','retention','loyalty'], e:['loyalty','מועדון לקוחות','נקודות','points','subscription','מנוי','הטבות','אפליקציה','rewards']},
+  {t:['צעיר','נוער','דור','gen','טיקטוק','tiktok','סטודנט','זומר'], e:['gen z','דור','נוער','רשתות חברתיות','מדיה חברתית','tiktok','viral','ויראלי','אינפלואנסר','influencer','מים','meme']},
+  {t:['מכיר','sales','הכנס','traffic','תנוע','לידים','הזמנ'], e:['sales','מכירות','תנועה','הזמנות','deal','מבצע','upsell','combo','ארוחה']},
+  {t:['חשיפ','מודע','awareness','ויראל','viral','באז','buzz','יחצ','pr'], e:['awareness','ויראלי','pr','יחסי ציבור','סטאנט','stunt','buzz','טרנד','trend']},
+  {t:['דיגיט','אונליין','online','אפליק','app','אתר','דיליברי','delivery','משלוח'], e:['אפליקציה','app','online','דיגיטלי','משלוח','delivery','אונליין','ecommerce','self order','קיוסק']},
+  {t:['שיתוף','קולאב','collab','partner','שותפ','מותג','ברנד'], e:['collaboration','שיתוף פעולה','collab','partnership','co-branding','לימיטד','crossover']},
+  {t:['משפח','ילד','kids','family','הורים'], e:['family','משפחה','ילדים','kids','ארוחה משפחתית','combo','צעצוע','toy']},
+  {t:['מחיר','זול','תקציב','value','חסכ','deal','דיל','מבצע'], e:['value','מבצע מחיר','deal','הנחה','combo','ארוחה','bundle','affordable']},
+  {t:['השק','חדש','launch','lto','מוצר','טעם'], e:['launch','lto','מוצר חדש','limited time','לזמן מוגבל','טעם חדש','חדשנות','innovation']},
+  {t:['קיימ','סביב','ירוק','sustain','green','אקו'], e:['sustainability','קיימות','אריזה','green','סביבה','vegan','טבעוני']},
+  {t:['חוויי','חוו','experience','אירוע','event','פופ','popup','גיימיפ'], e:['experience','אירוע','event','pop-up','פופ אפ','חוויית לקוח','גיימיפיקציה','gamification']},
+];
+const FIELD_W={tags:3, camp:2.2, cat:2, brand:1.2, sum:1.4, ev:1};
+const HE_PFX=new Set(['ו','ה','ב','ל','מ','ש','כ','ד']);
+// light Hebrew stemmer: strip up to 2 leading prefixes + one plural/fem suffix.
+function stem(w){ let c=(w||'').toLowerCase().replace(/[֑-ׇ]/g,'');
+  for(let k=0;k<2;k++){ if(c.length>3 && HE_PFX.has(c[0])) c=c.slice(1); else break; }
+  const m=c.match(/^(.*?)(יות|ות|ים|יים|ה|ת)$/); if(m && m[1].length>=3) c=m[1]; return c; }
+function _tokens(s){ return (s||'').toLowerCase().replace(/[֑-ׇ]/g,'')
+  .split(/[^a-z0-9א-ת]+/).filter(w=>w && w.length>=2 && !HE_STOP.has(w) && !EN_STOP.has(w)); }
+function stemsOf(str){ return [...new Set(_tokens(str).map(stem))]; }
+function buildQuery(q){
+  const prim=_tokens(q), seen=new Set(), out=[];
+  const add=(w,weight,label)=>{ const s=stem(w); if(!s||seen.has(s)) return; seen.add(s);
+    out.push({stem:s, w:weight, label:label||w}); };
+  prim.forEach(w=>add(w,1.0,w));
+  prim.forEach(w=>{ const s=stem(w);
+    for(const c of CONCEPTS){ if(c.t.some(tr=>s.includes(tr)||tr.includes(s)||w.includes(tr)))
+      c.e.forEach(e=>_tokens(e).forEach(et=>add(et,0.45,w))); } });
+  return out;
+}
+function ideaFields(i){ return {
+  tags:stemsOf(ideaTags(i).join(' ')), camp:stemsOf(i.campaign_name),
+  cat:stemsOf(i.category), brand:stemsOf(i.brand),
+  sum:stemsOf(i.summary), ev:stemsOf(i.evidence_of_success) }; }
+function _hit(qs, fieldStems){ for(const fs of fieldStems){ if(fs===qs) return true;
+  if(qs.length>=3 && fs.length>=3 && (fs.startsWith(qs)||qs.startsWith(fs))) return true; } return false; }
+function scoreIdea(fields, qTokens){
+  let score=0; const hits=new Set();
+  for(const t of qTokens){ let best=0;
+    for(const f in fields){ if(_hit(t.stem, fields[f])){ best=Math.max(best,FIELD_W[f]); hits.add(t.label);} }
+    score += best*t.w; }
+  return {score, hits:[...hits]};
+}
 
 function renderIdeas(){
   initIdeaFilters();
@@ -908,10 +1456,32 @@ function renderIdeas(){
     if(fc && i.category!==fc) return false;
     if(fs && i.source_name!==fs) return false;
     if(fconf && (i.confidence||'low')!==fconf) return false;
+    if(ideaFavOnly && !ideaFavs.has(i.id)) return false;
     if(ideaTodayOnly){ const t=Date.parse(i.date_collected||''); if(!(t&&t>=dayAgo)) return false; }
-    if(q){ const hay=`${i.brand||''} ${i.campaign_name||''} ${i.summary||''}`.toLowerCase(); if(!hay.includes(q)) return false; }
     return true;
-  }).sort((a,b)=>String(b.date_collected||'').localeCompare(String(a.date_collected||'')));
+  });
+
+  // smart ranking when a challenge/query is typed; otherwise newest-first.
+  const note=document.getElementById('ideaSmartNote');
+  let relMap=null, whyMap=null;
+  const smart = q && q.trim().length>=2;
+  if(smart){
+    const qTokens=buildQuery(q);
+    const scored=rows.map(i=>({i, ...scoreIdea(ideaFields(i), qTokens)}))
+      .filter(x=>x.score>0)
+      .sort((a,b)=> b.score-a.score || String(b.i.date_collected||'').localeCompare(String(a.i.date_collected||'')));
+    const max=scored.length?scored[0].score:1;
+    relMap=new Map(); whyMap=new Map();
+    scored.forEach(x=>{ relMap.set(x.i.id, Math.max(20,Math.round(100*x.score/max))); whyMap.set(x.i.id, x.hits); });
+    rows=scored.map(x=>x.i);
+    note.style.display='block';
+    note.textContent = scored.length
+      ? `🎯 ${scored.length} רעיונות מתאימים לאתגר "${q.trim()}" — מדורגים לפי רלוונטיות`
+      : `לא נמצאו רעיונות מתאימים לאתגר "${q.trim()}". נסה ניסוח אחר או מושג רחב יותר.`;
+  } else {
+    note.style.display='none';
+    rows.sort((a,b)=>String(b.date_collected||'').localeCompare(String(a.date_collected||'')));
+  }
 
   document.getElementById('ideasCount').textContent =
     `· ${rows.length} מתוך ${marketingIdeas.length} רעיונות`;
@@ -927,15 +1497,26 @@ function renderIdeas(){
     const confLabel={high:'עדות חזקה',medium:'עדות בינונית',low:'עדות מוגבלת'}[conf]||conf;
     const limited=(conf==='low' && !i.evidence_of_success);
     const date=(i.date_collected||'').slice(0,10);
+    const tags=ideaTags(i);
+    const fav=ideaFavs.has(i.id);
+    const rel=relMap?relMap.get(i.id):null;
+    const why=whyMap?(whyMap.get(i.id)||[]):[];
     return `<div class="idea">
       <div class="ihead">
         <div>
           <div class="brand">${esc(i.brand)||'—'}</div>
           <div class="camp">${esc(i.campaign_name)||''}</div>
         </div>
-        <span class="badge cat">${esc(i.category)||'אחר'}</span>
+        <div style="display:flex;gap:6px;align-items:flex-start">
+          ${rel!=null?`<span class="badge rel" title="רלוונטיות לאתגר">🎯 ${rel}%</span>`:''}
+          <span class="badge cat">${esc(i.category)||'אחר'}</span>
+          <button class="fav${fav?' on':''}" title="${fav?'הסר סימון כמעניין':'סמן כמעניין — יישמר לצפייה מאוחר יותר'}"
+            onclick="toggleFav('${i.id}')">${fav?'⭐ מעניין':'☆ מעניין'}</button>
+        </div>
       </div>
+      ${why.length?`<div class="why">התאמה לפי: <b>${why.slice(0,5).map(esc).join('</b> · <b>')}</b></div>`:''}
       <div class="sum">${esc(i.summary)||''}</div>
+      ${tags.length?`<div class="tags">${tags.map(t=>`<span class="tagchip" onclick="searchTag('${esc(t).replace(/'/g,"\\'")}')">${esc(t)}</span>`).join('')}</div>`:''}
       ${i.evidence_of_success?`<div class="ev">📈 ${esc(i.evidence_of_success)}</div>`:''}
       <div style="display:flex;gap:6px;flex-wrap:wrap">
         <span class="badge c-${conf}">${limited?'עדות מוגבלת':confLabel}</span>
@@ -964,13 +1545,15 @@ window.submitIdea=async function(){
   const summary=document.getElementById('ai_summary').value.trim();
   if(!brand || !summary){ msg.textContent='חובה למלא מותג ותיאור.'; msg.style.color='var(--bad)'; return; }
   const evidence=document.getElementById('ai_evidence').value.trim();
+  const tags=(document.getElementById('ai_tags').value||'')
+    .split(/[,،;|]+/).map(s=>s.trim()).filter(Boolean).slice(0,6);
   const rec={
     date_collected:new Date().toISOString(), source_name:'ידני',
     source_url:document.getElementById('ai_url').value.trim(), published_date:'',
     brand, campaign_name:document.getElementById('ai_campaign').value.trim()||null,
     category:document.getElementById('ai_category').value, summary,
     evidence_of_success:evidence||null, confidence:evidence?'high':'low',
-    possible_duplicate_of:null, is_manual:true, tags:''
+    possible_duplicate_of:null, is_manual:true, tags
   };
   msg.textContent='שומר…'; msg.style.color='var(--muted)';
   try{
@@ -978,12 +1561,197 @@ window.submitIdea=async function(){
     const ref=await addDoc(collection(getDb(),'marketing_ideas'), rec);
     marketingIdeas.unshift({id:ref.id, ...rec});
     renderIdeas();
-    ['ai_brand','ai_campaign','ai_summary','ai_evidence','ai_url'].forEach(id=>document.getElementById(id).value='');
+    ['ai_brand','ai_campaign','ai_summary','ai_evidence','ai_tags','ai_url'].forEach(id=>document.getElementById(id).value='');
     msg.textContent='נשמר ✓'; msg.style.color='var(--good)';
   }catch(e){ msg.textContent='שגיאה בשמירה: '+e.message; msg.style.color='var(--bad)'; }
 };
 
 // ---- excel export (comparison) ----------------------------------------------
+// ---- Offer comparison (manual table) ----------------------------------------
+// Columns per row: d=דומינו'ס, j=פאפא ג'ונס, h=פיצה האט. '' / 'לא קיים' = missing.
+const OFFERS=[
+  {sec:'משלוח — פריטים', rows:[
+    {l:'פיצה משפחתית',            d:'72.9', j:'75.9', h:'74.9'},
+    {l:'תוספת ירקות (משפחתית)',    d:'11',   j:'11.9', h:'10.9'},
+    {l:'תוספת גבינה (משפחתית)',    d:'12',   j:'13.9', h:'11.9'},
+    {l:'תוספת בשר/דגים (משפחתית)', d:'12',   j:'13.9', h:'11.9'},
+    {l:'אישית',                   d:'29.9', j:'35.9', h:'29.9'},
+    {l:'תוספת ירקות (אישית)',      d:'6',    j:'7.9',  h:'6.9'},
+    {l:'תוספת גבינה (אישית)',      d:'6',    j:'9.9',  h:'7.5'},
+    {l:'תוספת בשר/דגים (אישית)',   d:'6',    j:'9.9',  h:'7.5'},
+    {l:"צ'יזי קראסט",              d:'84.9', j:'94.9', h:'84.9'},
+    {l:'מיקס',                    d:'87.9/91.9', j:'94.90-98.90', h:'84.9'},
+    {l:'XL',                      d:'84.9', j:'86.9', h:'84.9'},
+    {l:'נלווה',                   d:'24.9', j:'35.9-51.90', h:'20.9-39'},
+    {l:'רולס',                    d:'29.9', j:'35.9-39.90', h:''},
+    {l:'קינוח',                   d:'24.9-29.9', j:'35.90-39.90', h:'19.9-27.9'},
+    {l:'פיינט',                   d:'31.9', j:'ירד מהאתר', h:'29.9'},
+    {l:'שתיה',                    d:'15',   j:'16.9', h:'15.5'},
+    {l:'פחית',                    d:'10',   j:'12.9', h:'10.5'},
+    {l:'דמי משלוח',               d:'16',   j:'16',   h:'16'},
+  ]},
+  {sec:'משלוח — ארוחות', groups:[
+    {g:'פיצה אחת', c:'rgba(230,140,30,.15)', rows:[
+      {l:'פיצה + נלווה/קינוח',            d:'83', j:'89.9', h:'89'},
+      {l:'פיצה + נלווה (וריאציה)',         d:'',   j:'94',   h:'74.9'},
+      {l:'משפחתית + תוספת + שתיה',         d:'',   j:'לא קיים', h:'95'},
+      {l:'משפחתית + 2 נלווים/קינוחים',     d:'98', j:'לא קיים', h:'לא קיים'},
+    ]},
+    {g:'2 פיצות', c:'rgba(63,185,80,.15)', rows:[
+      {l:'2 משפחתיות',                          d:'120', j:'128', h:'125'},
+      {l:"צ'יזי קראסט + משפחתית",                d:'',    j:'',    h:'140'},
+      {l:"צ'יזי קראסט + תוספת + נלווה או שתיה",    d:'',    j:'115', h:''},
+      {l:'2 משפחתיות + 2 תוספות',               d:'134', j:'לא קיים', h:'139'},
+      {l:'2 משפחתיות + נלווה',                   d:'',    j:'149', h:'135'},
+      {l:'2 משפחתיות + 2 תוספות + 2 נלווה/קינוח', d:'157', j:'',   h:''},
+    ]},
+    {g:'3 פיצות ומעלה', c:'rgba(47,129,247,.15)', rows:[
+      {l:'3 משפחתיות + תוספת לכל אחת', d:'169', j:'189',   h:'189'},
+      {l:'4 משפחתיות',                d:'',    j:'239.6', h:''},
+      {l:'6 פיצות',                   d:'276', j:'323.4', h:'299'},
+      {l:'8 פיצות',                   d:'360', j:'392',   h:''},
+      {l:'10 פיצות',                  d:'430', j:'460.9', h:''},
+    ]},
+  ]},
+  {sec:'איסוף', rows:[
+    {l:'אישית',        d:'22',   j:'34.9', h:'29.9'},
+    {l:'אישית + פחית',  d:'',     j:'39.9', h:''},
+    {l:'משפחתית',       d:'58.3', j:'64.9', h:'74.9'},
+    {l:'2 משפחתיות',    d:'',     j:'125',  h:''},
+  ]},
+  {sec:'מיוחדים', special:[
+    {brand:"פאפא ג'ונס", offer:'אישית טוי סטורי בקניית 2 ויותר', price:'36.9'},
+    {brand:'פיצה האט',   offer:'משפחתית + שמנת קראסט',          price:'118'},
+  ]},
+];
+function offNum(v){ const m=String(v==null?'':v).match(/\d+(?:\.\d+)?/); return m?parseFloat(m[0]):null; }
+function offRowsHtml(rows){
+  return rows.map(r=>{
+    const n={d:offNum(r.d), j:offNum(r.j), h:offNum(r.h)};
+    const pres=Object.values(n).filter(x=>x!=null);
+    const min=(pres.length>=2 && Math.min(...pres)<Math.max(...pres))?Math.min(...pres):null;
+    const cell=(v,k)=>{ const isMin=min!=null&&n[k]===min;
+      const s=(v==null||v==='')?'—':esc(String(v));
+      return `<td${isMin?' class="best"':''}>${isMin?'★ ':''}${s}</td>`; };
+    return `<tr><td class="rowlabel">${esc(r.l||'—')}</td>${cell(r.d,'d')}${cell(r.j,'j')}${cell(r.h,'h')}</tr>`;
+  }).join('');
+}
+function offTable(rows){
+  return `<div class="tbl-wrap"><table>
+    <thead><tr><th style="text-align:right">הצעה</th><th>דומינו'ס</th><th>פאפא ג'ונס</th><th>פיצה האט</th></tr></thead>
+    <tbody>${offRowsHtml(rows)}</tbody></table></div>`;
+}
+function renderOffers(){
+  const el=document.getElementById('offersBody');
+  if(el){
+    if(offerLive && offerLive.chains && Object.keys(offerLive.chains).length){
+      renderOffersLive(el, offerLive);
+    } else {
+      el.innerHTML=`<div class="no-data">אין עדיין נתונים חיים. ההצעות נשלפות אוטומטית מאתרי הרשתות בסריקה היומית של 17:00 ויוצגו כאן.</div>`;
+    }
+  }
+  renderOffersHistory();
+}
+
+// key pizza categories tracked over time in the daily-history table
+const OFFER_HIST_CATS=[['family','משפחתית'],['personal','אישית'],['cheesy_crust','צ׳יזי קראסט'],['xl','XL']];
+function renderOffersHistory(){
+  const tbl=document.getElementById('offerHistTable'); if(!tbl) return;
+  const thead=tbl.querySelector('thead'), tbody=tbl.querySelector('tbody');
+  if(!offerHist.length){ thead.innerHTML=''; tbody.innerHTML='<tr><td class="no-data">אין עדיין היסטוריה — תיצבר מדי יום.</td></tr>'; return; }
+  const h1='<tr><th rowspan="2" style="text-align:right">תאריך</th>'
+    + OFFER_CHAINS.map(([,nm])=>`<th colspan="${OFFER_HIST_CATS.length}">${nm}</th>`).join('') + '</tr>';
+  const h2='<tr>'+OFFER_CHAINS.map(()=>OFFER_HIST_CATS.map(([,l])=>`<th>${l}</th>`).join('')).join('')+'</tr>';
+  thead.innerHTML=h1+h2;
+  tbody.innerHTML=[...offerHist].reverse().map(doc=>{
+    const ch=doc.chains||{};
+    const cells=OFFER_CHAINS.map(([k])=>OFFER_HIST_CATS.map(([cat])=>{
+      const it=(ch[k]&&ch[k].items)||{}; const c=it[cat];
+      return `<td${c&&c.name?` title="${esc(c.name)}"`:''}>${c?'₪'+c.price:'—'}</td>`;
+    }).join('')).join('');
+    return `<tr><td style="text-align:right">${esc((doc.date||doc.id||'').slice(0,10))}</td>${cells}</tr>`;
+  }).join('');
+}
+
+// live scraped data (offer_comparison) ----------------------------------------
+const OFFER_CATS=[['family','פיצה משפחתית'],['personal','פיצה אישית'],
+  ['cheesy_crust',"צ'יזי קראסט / מעטפת גבינה"],['xl','XL / אקסטרה / ענקית'],
+  ['side','מנה נלווית'],['dessert','קינוח'],
+  ['drink_family',"שתייה משפחתית / 1.5 ל'"],['drink_personal','שתייה אישית / פחית']];
+const OFFER_CHAINS=[['dominos',"דומינו'ס"],['papajohns',"פאפא ג'ונס"],['pizzahut','פיצה האט']];
+const MEAL_TIERS=[['one','פיצה אחת','rgba(230,140,30,.15)'],['two','2 פיצות','rgba(63,185,80,.15)'],
+  ['multi','3 פיצות ומעלה','rgba(47,129,247,.15)']];
+
+function renderOffersLive(el, doc){
+  const ch=doc.chains;
+  const item=(k,cat)=>{ const it=(ch[k]&&ch[k].items)||{}; return it[cat]||null; };
+  let html=`<div class="smartnote" style="display:block">🔴 נתונים חיים מהאתרים — נסרקו ${esc((doc.timestamp||doc.date||'').slice(0,16))}</div>`;
+  html+=`<div style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">`
+    + OFFER_CHAINS.map(([k,nm])=>`${nm}: ${esc((ch[k]&&ch[k].service)||'—')}`).join(' · ')
+    + ` · דומינוס במחירי איסוף (מחירי משלוח אינם נחשפים לסריקה) · המחיר תחתיו שם המוצר המדויק שנשלף</div>`;
+  // items comparison — each cell shows price + the exact product name (+ desc tooltip)
+  html+=`<div class="sec">מחירי פריטים</div><div class="tbl-wrap"><table><thead><tr>`
+    + `<th style="text-align:right">קטגוריה</th>` + OFFER_CHAINS.map(([,nm])=>`<th>${nm}</th>`).join('') + `</tr></thead><tbody>`;
+  for(const [cat,lbl] of OFFER_CATS){
+    const cells=OFFER_CHAINS.map(([k])=>item(k,cat));
+    const nums=cells.map(c=>c?c.price:null);
+    const pres=nums.filter(x=>x!=null);
+    const min=(pres.length>=2 && Math.min(...pres)<Math.max(...pres))?Math.min(...pres):null;
+    html+=`<tr><td class="rowlabel">${esc(lbl)}</td>`+cells.map((c,i)=>{
+      if(!c) return `<td>—</td>`;
+      const isMin=min!=null&&c.price===min;
+      const dsc=c.desc?` title="${esc(c.desc)}"`:'';
+      return `<td class="offer-cell${isMin?' best':''}"${dsc}>`
+        + `<div class="oc-price">${isMin?'★ ':''}₪${c.price}</div>`
+        + `<div class="oc-name">${esc(c.name||'')}${c.desc?' ⓘ':''}</div></td>`;
+    }).join('')+`</tr>`;
+  }
+  html+=`</tbody></table></div>`;
+  // meal deals by tier — full deal name (what's included) + price
+  for(const [tier,tlabel,color] of MEAL_TIERS){
+    html+=`<div class="grp" style="background:${color}">ארוחות · ${esc(tlabel)}</div>`;
+    html+=`<div class="offer-meals">`;
+    for(const [k,nm] of OFFER_CHAINS){
+      const meals=((ch[k]&&ch[k].meals)||{})[tier]||[];
+      html+=`<div class="offer-mealcard"><div class="mc-head">${nm}</div>`
+        + (meals.length ? meals.map(m=>`<div class="mc-row"${m.desc?` title="${esc(m.desc)}"`:''}><span>${esc(m.name)}</span><b>₪${m.price}</b></div>`).join('')
+                        : `<div class="mc-empty">— אין הצעה מתאימה —</div>`)
+        + `</div>`;
+    }
+    html+=`</div>`;
+  }
+  el.innerHTML=html;
+}
+window.exportOffersExcel=function(){
+  if(!(offerLive && offerLive.chains)){ alert('אין עדיין נתונים חיים לייצוא — ההצעות ייסרקו בסריקת 17:00'); return; }
+  const ch=offerLive.chains;
+  const cell=(k,cat)=>{ const it=(ch[k]&&ch[k].items)||{}; const c=it[cat]; return c?`₪${c.price} — ${c.name}`:''; };
+  const rows=[[`השוואת הצעות · נסרק ${(offerLive.timestamp||offerLive.date||'')}`],
+              ['קטגוריה',"דומינו'ס","פאפא ג'ונס",'פיצה האט']];
+  for(const [cat,lbl] of OFFER_CATS) rows.push([lbl,cell('dominos',cat),cell('papajohns',cat),cell('pizzahut',cat)]);
+  for(const [tier,tlabel] of MEAL_TIERS){
+    const col=k=>(((ch[k]&&ch[k].meals)||{})[tier]||[]).map(m=>`₪${m.price} — ${m.name}`).join(' | ');
+    rows.push(['ארוחות · '+tlabel,col('dominos'),col('papajohns'),col('pizzahut')]);
+  }
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(rows), 'הצעות היום');
+  // second sheet — daily history of the key pizza prices
+  if(offerHist.length){
+    const hh=['תאריך'];
+    OFFER_CHAINS.forEach(([,nm])=>OFFER_HIST_CATS.forEach(([,l])=>hh.push(`${nm} · ${l}`)));
+    const hrows=[hh];
+    [...offerHist].reverse().forEach(doc=>{
+      const ch=doc.chains||{}; const r=[(doc.date||doc.id||'').slice(0,10)];
+      OFFER_CHAINS.forEach(([k])=>OFFER_HIST_CATS.forEach(([cat])=>{
+        const c=((ch[k]&&ch[k].items)||{})[cat]; r.push(c?c.price:'');
+      }));
+      hrows.push(r);
+    });
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(hrows), 'היסטוריה יומית');
+  }
+  XLSX.writeFile(wb, 'offer_comparison.xlsx');
+};
+
 window.exportExcel=function(){
   const history=viewHistory();
   if(!history.length){ alert('אין נתונים לייצוא'); return; }
@@ -1004,49 +1772,23 @@ window.exportExcel=function(){
   XLSX.writeFile(wb,`pizza_prices_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
 
-// ---- excel export (Pais Plus: offers + daily + cumulative) -------------------
+// ---- excel export (Pais Plus: offers, honoring the active filters) ----------
 window.exportPaisplusExcel=function(){
   const ppAll=viewPpAll();
   if(!ppAll.length){ alert('אין נתוני פייס פלוס לייצוא'); return; }
   const wb=XLSX.utils.book_new();
 
-  // Sheet 1 — offers of the most recent day (as shown in the table)
   const latest=ppAll[ppAll.length-1];
-  const oHead=['תאריך','שורה','ניקוד','מועדפת','חברה','הצעה','קטגוריה','מחיר','קישור'];
+  const oHead=['תאריך','שורה','מועדפת','חברה','הצעה','קטגוריה','איסוף בלבד','מחיר','קישור'];
   const oRows=[oHead];
-  (latest?.offers||[]).slice()
-    .sort((a,b)=>offerScore(b.row)-offerScore(a.row)||(a.price_value??1e9)-(b.price_value??1e9))
-    .forEach(o=>oRows.push([o.date||latest.date, o.row??'', offerScore(o.row),
+  ppFilterOffers(latest?.offers).slice()
+    .sort((a,b)=>(Number(a.row)||99)-(Number(b.row)||99)||(a.price_value??1e9)-(b.price_value??1e9))
+    .forEach(o=>oRows.push([o.date||latest.date, o.row??'',
       o.is_preferred?'כן':'', o.company||'', o.offer_text||o.full_text||'',
-      o.category||'', o.price_text||(o.price_value??''), o.product_url||'']));
+      o.category||'', isPpPickupOnly(o)?'כן':'לא', o.price_text||(o.price_value??''), o.product_url||'']));
   const ws1=XLSX.utils.aoa_to_sheet(oRows);
-  ws1['!cols']=[{wch:11},{wch:6},{wch:7},{wch:8},{wch:14},{wch:40},{wch:22},{wch:14},{wch:36}];
+  ws1['!cols']=[{wch:11},{wch:6},{wch:8},{wch:14},{wch:40},{wch:22},{wch:10},{wch:14},{wch:36}];
   XLSX.utils.book_append_sheet(wb,ws1,'הצעות');
-
-  // Sheet 2 — daily score matrix (company × date)
-  const {dates,companies}=ppDailyMatrix();
-  const dHead=['חברה',...dates,'סה"כ'];
-  const dRows=[dHead];
-  companies.forEach(c=>dRows.push([c.co, ...dates.map(d=>c.byDate[d]||0), c.total]));
-  const ws2=XLSX.utils.aoa_to_sheet(dRows);
-  ws2['!cols']=dHead.map((_,i)=>({wch:i===0?18:11}));
-  XLSX.utils.book_append_sheet(wb,ws2,'ניקוד יומי');
-
-  // Sheet 3 — cumulative totals per company (score next to its ad count)
-  const lastDate = ppAll.length ? ppAll[ppAll.length-1].date : null;
-  const cHead=['חברה','ניקוד מצטבר','מס\' מודעות','ניקוד אחרון','מודעות אחרונות','ימים'];
-  const cRows=[cHead];
-  companies.forEach(c=>{
-    const days=new Set(); let ads=0, lastScore=0, lastAds=0;
-    ppAll.forEach(day=>(day.offers||[]).forEach(o=>{ if((o.company||'לא ידוע')===c.co){
-      ads++; days.add(day.date);
-      if(day.date===lastDate){ lastScore+=offerScore(o.row); lastAds++; }
-    }}));
-    cRows.push([c.co, c.total, ads, lastScore, lastAds, days.size]);
-  });
-  const ws3=XLSX.utils.aoa_to_sheet(cRows);
-  ws3['!cols']=[{wch:18},{wch:14},{wch:11},{wch:12},{wch:14},{wch:8}];
-  XLSX.utils.book_append_sheet(wb,ws3,'ניקוד מצטבר');
 
   XLSX.writeFile(wb,`paisplus_${new Date().toISOString().slice(0,10)}.xlsx`);
 };
@@ -1094,6 +1836,20 @@ function finishRefresh(ok){
 
 // ---- tabs --------------------------------------------------------------------
 function initTabs(){
+  if(!SHOW_NETWORK_COMPARISON){
+    const cmpBtn=document.querySelector('.tab[data-tab="compare"]');
+    if(cmpBtn){
+      cmpBtn.style.display='none';
+      cmpBtn.classList.remove('active');
+      document.getElementById('panel-compare').classList.remove('active');
+      // promote the next visible tab to the default-active one
+      const nextBtn=document.querySelector('.tab:not([style*="display: none"])');
+      if(nextBtn){
+        nextBtn.classList.add('active');
+        document.getElementById('panel-'+nextBtn.dataset.tab).classList.add('active');
+      }
+    }
+  }
   document.querySelectorAll('.tab').forEach(btn=>{
     btn.addEventListener('click',()=>{
       document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
@@ -1105,7 +1861,294 @@ function initTabs(){
 }
 
 // ---- init --------------------------------------------------------------------
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderPaisplus(); renderPaisplusDaily(); renderPaisplusHistory(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); renderIdeas(); }
+// ---- TABIT restaurant index -------------------------------------------------
+const TABIT_BAND_COLORS={'1-100':'#2f81f7','101-200':'#3fb950','200+':'#d29922'};
+let _tabitListeners=false;
+
+// hand-rolled responsive SVG line chart (no external lib). series: [{label,color,values:[num|null]}]
+function svgIndexChart(months, series, opts={}){
+  if(!months.length || !series.some(s=>s.values.some(v=>v!=null)))
+    return '<div class="no-data">אין נתונים</div>';
+  const W=760,H=opts.height||240,padL=40,padR=14,padT=14,padB=30;
+  const vals=series.flatMap(s=>s.values).filter(v=>v!=null);
+  let mn=Math.min(...vals),mx=Math.max(...vals);
+  if(opts.base!=null){ mn=Math.min(mn,opts.base); mx=Math.max(mx,opts.base); }
+  const span=(mx-mn)||10; mn=Math.floor(mn-span*0.12); mx=Math.ceil(mx+span*0.12);
+  const X=i=> padL+(months.length<=1?0:(W-padL-padR)*i/(months.length-1));
+  const Y=v=> padT+(H-padT-padB)*(1-(v-mn)/(mx-mn));
+  let s=`<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">`;
+  for(let t=0;t<=4;t++){ const val=mn+(mx-mn)*t/4, yy=Y(val);
+    s+=`<line x1="${padL}" y1="${yy}" x2="${W-padR}" y2="${yy}" stroke="var(--border)" stroke-width="1"/>`;
+    s+=`<text x="${padL-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(val)}</text>`; }
+  if(opts.base!=null && opts.base>=mn && opts.base<=mx){ const yb=Y(opts.base);
+    s+=`<line x1="${padL}" y1="${yb}" x2="${W-padR}" y2="${yb}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".7"/>`; }
+  const step=Math.max(1,Math.ceil(months.length/6));
+  for(let i=0;i<months.length;i+=step) s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9" fill="var(--muted)">${months[i]}</text>`;
+  for(const ser of series){ let seg=[];
+    const flush=()=>{ if(seg.length>1) s+=`<polyline points="${seg.join(' ')}" fill="none" stroke="${ser.color}" stroke-width="2"/>`; seg=[]; };
+    ser.values.forEach((v,i)=>{ if(v==null) flush(); else seg.push(`${X(i).toFixed(1)},${Y(v).toFixed(1)}`); });
+    flush();
+    const li=ser.values.map((v,i)=>v!=null?i:-1).filter(i=>i>=0).pop();
+    if(li>=0) s+=`<circle cx="${X(li).toFixed(1)}" cy="${Y(ser.values[li]).toFixed(1)}" r="3" fill="${ser.color}"/>`; }
+  return s+`</svg>`;
+}
+function chartLegend(series){ return series.map(s=>`<span class="lg"><span class="sw" style="background:${s.color}"></span>${esc(s.label)}</span>`).join(''); }
+
+function renderTabit(){
+  const chartEl=document.getElementById('tabitChart'); if(!chartEl) return;
+  if(!tabitData || !((tabitData.general||[]).length)){
+    chartEl.innerHTML=`<div class="no-data">אין עדיין נתוני TABIT — ייסרקו בסריקת 17:00.</div>`;
+    document.getElementById('tabitBandChart').innerHTML=''; return;
+  }
+  const gen=tabitData.general, band=tabitData.byband||[];
+  document.getElementById('tabitMeta').textContent = tabitData.scraped_at ? `· עודכן ${String(tabitData.scraped_at).slice(0,10)}` : '';
+  const regSel=document.getElementById('tabitRegion');
+  if(!_tabitInit){ _tabitInit=true;
+    const regs=[...new Set(gen.map(r=>r.region))].sort((a,b)=> a==='ארצי'?-1 : b==='ארצי'?1 : a.localeCompare(b,'he'));
+    regSel.innerHTML=regs.map(r=>`<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  }
+  if(!_tabitListeners){ _tabitListeners=true;
+    regSel.addEventListener('change',renderTabit);
+    document.getElementById('tabitService').addEventListener('change',renderTabit);
+  }
+  const region=regSel.value||'ארצי';
+  const rows=gen.filter(r=>r.region===region).sort((a,b)=>a.month.localeCompare(b.month));
+  const months=rows.map(r=>r.month), idx=rows.map(r=>r.index);
+  const last=idx[idx.length-1], prev=idx[idx.length-2];
+  let stat=`מדד אחרון: <b>${last??'—'}</b>`;
+  if(last!=null && prev!=null){ const d=+(last-prev).toFixed(2), cls=d>=0?'tabit-up':'tabit-down';
+    stat+=` · שינוי חודשי: <span class="${cls}">${d>=0?'▲':'▼'} ${Math.abs(d)}</span>`; }
+  document.getElementById('tabitStat').innerHTML=stat;
+  chartEl.innerHTML=svgIndexChart(months,[{label:region,color:'var(--accent)',values:idx}],{base:100});
+  document.getElementById('tabitLegend').innerHTML=chartLegend([{label:`${region} · מדד (בסיס 100)`,color:'var(--accent)'}]);
+  const t1=document.getElementById('tabitTable');
+  t1.querySelector('thead').innerHTML=`<tr><th>חודש</th><th>מדד</th><th>שינוי %</th><th>לקוחות</th><th>מכירות ₪</th></tr>`;
+  t1.querySelector('tbody').innerHTML=[...rows].reverse().map(r=>`<tr>
+    <td>${esc(r.month)}</td><td class="price">${r.index??'—'}</td>
+    <td>${r.pct!=null?(r.pct>=0?'+':'')+r.pct+'%':'—'}</td>
+    <td>${r.customers!=null?r.customers.toLocaleString():'—'}</td>
+    <td>${r.sales!=null?Math.round(r.sales).toLocaleString():'—'}</td></tr>`).join('');
+  const svc=document.getElementById('tabitService').value;
+  const br=band.filter(r=>r.service===svc);
+  const bm=[...new Set(br.map(r=>r.month))].sort();
+  const bands=[...new Set(br.map(r=>r.band))];
+  const bseries=bands.map(b=>({label:'₪'+b,color:TABIT_BAND_COLORS[b]||'#888',
+    values:bm.map(m=>{ const x=br.find(r=>r.month===m&&r.band===b); return x?x.index:null; })}));
+  document.getElementById('tabitBandChart').innerHTML=svgIndexChart(bm,bseries,{base:100});
+  document.getElementById('tabitBandLegend').innerHTML=chartLegend(bseries.map(s=>({label:s.label+' לסועד',color:s.color})));
+  const t2=document.getElementById('tabitBandTable');
+  t2.querySelector('thead').innerHTML=`<tr><th>חודש</th>${bands.map(b=>`<th>₪${esc(b)}</th>`).join('')}</tr>`;
+  t2.querySelector('tbody').innerHTML=[...bm].reverse().map(m=>`<tr><td>${esc(m)}</td>`+
+    bands.map(b=>{ const x=br.find(r=>r.month===m&&r.band===b); return `<td class="price">${x?x.index:'—'}</td>`; }).join('')+`</tr>`).join('');
+  // redemption (revenue-change %) by order type, for the selected region
+  const red=(tabitData.redemption||[]).filter(r=>r.region===region).sort((a,b)=>a.month.localeCompare(b.month));
+  const rm=red.map(r=>r.month);
+  const rseries=[
+    {label:'ישיבה',color:'#2f81f7',values:red.map(r=>r.seating)},
+    {label:'דלפק',color:'#3fb950',values:red.map(r=>r.counter)},
+    {label:'משלוח',color:'#d29922',values:red.map(r=>r.delivery)}];
+  document.getElementById('tabitRedChart').innerHTML=svgIndexChart(rm,rseries,{base:0});
+  document.getElementById('tabitRedLegend').innerHTML=chartLegend(rseries)+' <span class="lg" style="opacity:.7">(שינוי פדיון %)</span>';
+  const t3=document.getElementById('tabitRedTable');
+  t3.querySelector('thead').innerHTML=`<tr><th>חודש</th><th>ישיבה</th><th>דלפק</th><th>משלוח</th></tr>`;
+  const pc=v=>v!=null?(v>=0?'+':'')+v+'%':'—';
+  const cl=v=>v==null?'':(v>=0?'tabit-up':'tabit-down');
+  t3.querySelector('tbody').innerHTML=red.length?[...red].reverse().map(r=>`<tr>
+    <td>${esc(r.month)}</td>
+    <td class="${cl(r.seating)}">${pc(r.seating)}</td>
+    <td class="${cl(r.counter)}">${pc(r.counter)}</td>
+    <td class="${cl(r.delivery)}">${pc(r.delivery)}</td></tr>`).join('')
+    : `<tr><td class="no-data" colspan="4">אין נתוני פדיון לאזור זה</td></tr>`;
+}
+window.exportTabitExcel=function(){
+  if(!tabitData){ alert('אין נתוני TABIT לייצוא'); return; }
+  const wb=XLSX.utils.book_new();
+  const g=[['אזור','חודש','מדד','שינוי %','לקוחות','מכירות']];
+  (tabitData.general||[]).forEach(r=>g.push([r.region,r.month,r.index,r.pct,r.customers,r.sales]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(g),'מדד כללי');
+  const b=[['חודש','טווח לסועד','שירות','מדד','לקוחות','מכירות','הזמנות','אתרים']];
+  (tabitData.byband||[]).forEach(r=>b.push([r.month,r.band,r.service,r.index,r.customers,r.sales,r.orders,r.sites]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(b),'לפי טווח ושירות');
+  const rd=[['אזור','חודש','ישיבה %','דלפק %','משלוח %']];
+  (tabitData.redemption||[]).forEach(r=>rd.push([r.region,r.month,r.seating,r.counter,r.delivery]));
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rd),'פדיון לפי סוג הזמנה');
+  XLSX.writeFile(wb,'tabit_index.xlsx');
+};
+
+// ---- QSR Magazine daily headlines -------------------------------------------
+function qsrFmtPub(s){ const m=(s||'').match(/(\d{1,2}\s+[A-Za-z]+\s+\d{4})\s+(\d{2}:\d{2})/); return m?`${m[1]} ${m[2]}`:(s||'').slice(0,22); }
+function qsrRow(a, dateVal){
+  const title=`<td class="qsr-titlecell"><b>${esc(a.title_he||a.title)}</b>`
+    + (a.title && a.title!==a.title_he?`<div class="qsr-en">${esc(a.title)}</div>`:'')+`</td>`;
+  const sum=`<td class="qsr-sumcell"><div class="qsr-sum" title="${esc(a.summary||'')}">${esc(a.summary||'')}</div></td>`;
+  const pub=`<td style="white-space:nowrap;font-size:.74rem;color:var(--muted)">${esc(qsrFmtPub(a.published))}</td>`;
+  const link=`<td>${a.url?`<a class="offer-link" href="${esc(a.url)}" target="_blank" rel="noopener">לכתבה ↗</a>`:'—'}</td>`;
+  return (dateVal!=null?`<td style="white-space:nowrap">${esc(dateVal)}</td>`:'')+title+sum+pub+link;
+}
+const QSR_CHAIN_COLORS={'דומינוס':'#0078AE','פיצה האט':'#E31837',"פאפא ג'ונס":'#006341'};
+window.qsrSetChain=function(c){
+  qsrChainFilter=c||'';
+  renderQsrChain();
+};
+function renderQsrChain(){
+  const t=document.getElementById('qsrChainTable'); if(!t) return;
+  // highlight active filter button
+  [...document.querySelectorAll('#panel-qsr .controls .action')].forEach(b=>{
+    const on=(b.textContent.trim()===(qsrChainFilter||'הכל'));
+    b.style.background=on?'var(--accent)':'';
+  });
+  const items=(qsrChain||[]).filter(a=>!qsrChainFilter || a.chain===qsrChainFilter);
+  document.getElementById('qsrChainMeta').textContent = qsrChain&&qsrChain.length
+    ? `· ${items.length} כתבות` : '';
+  t.querySelector('thead').innerHTML=`<tr><th>רשת</th><th>כותרת</th><th>תקציר</th><th>פורסם</th><th>קישור</th></tr>`;
+  if(!qsrChain || !qsrChain.length){
+    t.querySelector('tbody').innerHTML=`<tr><td class="no-data" colspan="5">אין עדיין כתבות רשת ב-QSR — הסקירה מצטברת מדי יום כשמתפרסמות כתבות על דומינוס / פיצה האט / פאפא ג'ונס.</td></tr>`;
+    return;
+  }
+  if(!items.length){ t.querySelector('tbody').innerHTML=`<tr><td class="no-data" colspan="5">אין כתבות לרשת שנבחרה.</td></tr>`; return; }
+  const today=new Date().toISOString().slice(0,10);
+  t.querySelector('tbody').innerHTML=items.map(a=>{
+    const badge=`<span class="badge" style="background:${QSR_CHAIN_COLORS[a.chain]||'var(--surface2)'};color:#fff">${esc(a.chain)}</span>`
+      + (a.first_seen===today?' <span class="badge" style="background:var(--good);color:#fff">חדש</span>':'');
+    return `<tr><td style="white-space:nowrap">${badge}</td>${qsrRow(a,null)}</tr>`;
+  }).join('');
+}
+function renderQsr(){
+  renderQsrChain();
+  const t=document.getElementById('qsrTable'); if(!t) return;
+  const at=document.getElementById('qsrArchiveTable');
+  if(!qsrDays.length){
+    t.querySelector('thead').innerHTML=''; t.querySelector('tbody').innerHTML='<tr><td class="no-data">אין עדיין נתונים — ייסרק אוטומטית ב-17:00.</td></tr>';
+    at.querySelector('thead').innerHTML=''; at.querySelector('tbody').innerHTML='<tr><td class="no-data">אין ארכיון עדיין.</td></tr>'; return;
+  }
+  const latest=qsrDays[qsrDays.length-1], arts=latest.articles||[];
+  document.getElementById('qsrMeta').textContent=`· ${arts.length} כתבות · עודכן ${latest.date||''}`;
+  t.querySelector('thead').innerHTML=`<tr><th>כותרת</th><th>תקציר</th><th>פורסם</th><th>קישור</th></tr>`;
+  t.querySelector('tbody').innerHTML= arts.length ? arts.map(a=>`<tr>${qsrRow(a,null)}</tr>`).join('')
+    : `<tr><td class="no-data" colspan="4">לא פורסמו כתבות ב-24 השעות האחרונות.</td></tr>`;
+  // cumulative archive — newest first, deduped by URL
+  at.querySelector('thead').innerHTML=`<tr><th>נאסף</th><th>כותרת</th><th>תקציר</th><th>פורסם</th><th>קישור</th></tr>`;
+  const seen=new Set(), rows=[];
+  for(const day of [...qsrDays].reverse())
+    for(const a of (day.articles||[])){ if(!a.url||seen.has(a.url))continue; seen.add(a.url); rows.push(`<tr>${qsrRow(a,day.date)}</tr>`); }
+  at.querySelector('tbody').innerHTML= rows.length?rows.join(''):`<tr><td class="no-data" colspan="5">אין ארכיון עדיין.</td></tr>`;
+}
+window.exportQsrExcel=function(){
+  if(!qsrDays.length){ alert('אין נתוני QSR לייצוא'); return; }
+  const rows=[['נאסף','כותרת (עברית)','כותרת (מקור)','תקציר','פורסם','קישור']];
+  const seen=new Set();
+  for(const day of [...qsrDays].reverse()) for(const a of (day.articles||[])){
+    if(!a.url||seen.has(a.url))continue; seen.add(a.url);
+    rows.push([day.date,a.title_he||'',a.title||'',a.summary||'',a.published||'',a.url||'']);
+  }
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'QSR Magazine');
+  if((qsrChain||[]).length){
+    const cn=[['רשת','כותרת (עברית)','כותרת (מקור)','תקציר','פורסם','נאסף','קישור']];
+    qsrChain.forEach(a=>cn.push([a.chain,a.title_he||'',a.title||'',a.summary||'',a.published||'',a.first_seen||'',a.url||'']));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cn),'Chain News');
+  }
+  XLSX.writeFile(wb,'qsr_magazine.xlsx');
+};
+
+// ---- Press monitoring (restaurants / delivery / pizza) ----------------------
+const PRESS_BUILTIN=[['globes','גלובס'],['ynet','Ynet'],['themarker','דה מרקר'],
+  ['haaretz','הארץ · אוכל'],['ice','Ice'],['calcalist','כלכליסט']];
+const PRESS_SOURCE_STYLE={globes:{bg:'#0a5f38',fg:'#fff'}, ynet:{bg:'#ffcc00',fg:'#111'},
+  themarker:{bg:'#004b87',fg:'#fff'}, haaretz:{bg:'#111111',fg:'#fff'},
+  ice:{bg:'#e2231a',fg:'#fff'}, calcalist:{bg:'#7a1fa2',fg:'#fff'}};
+function pressRow(a, dateVal){
+  const st=PRESS_SOURCE_STYLE[a.source]||{bg:'var(--surface2)',fg:'var(--text)'};
+  const badge=`<span class="badge" style="background:${st.bg};color:${st.fg}">${esc(a.source_name||a.source||'')}</span>`
+    + (a.is_pizza?' <span class="badge" style="background:var(--best);color:#111">🍕 פיצה</span>':'');
+  const title=`<td class="qsr-titlecell"><b>${esc(a.title||'')}</b></td>`;
+  const sum=`<td class="qsr-sumcell"><div class="qsr-sum" title="${esc(a.summary||'')}">${esc(a.summary||'')}</div></td>`;
+  const pub=`<td style="white-space:nowrap;font-size:.74rem;color:var(--muted)">${esc(qsrFmtPub(a.published))}</td>`;
+  const link=`<td>${a.url?`<a class="offer-link" href="${esc(a.url)}" target="_blank" rel="noopener">לכתבה ↗</a>`:'—'}</td>`;
+  return (dateVal!=null?`<td style="white-space:nowrap">${esc(dateVal)}</td>`:'')
+    + `<td style="white-space:nowrap">${badge}</td>` + title+sum+pub+link;
+}
+window.pressSetSource=function(v){ pressSourceFilter=v||''; renderPress(); };
+window.pressTogglePizza=function(){
+  pressPizzaOnly=!pressPizzaOnly;
+  document.getElementById('pressPizzaBtn').style.background = pressPizzaOnly ? 'var(--accent)' : '';
+  renderPress();
+};
+function pressMatchesFilter(a){
+  if(pressSourceFilter && a.source!==pressSourceFilter) return false;
+  if(pressPizzaOnly && !a.is_pizza) return false;
+  return true;
+}
+function renderPressSourcesList(){
+  const el=document.getElementById('pressSourcesList'); if(!el) return;
+  const builtin=PRESS_BUILTIN.map(([,nm])=>`• ${esc(nm)} <span style="opacity:.6">(מובנה)</span>`);
+  const user=(pressUserSources||[]).map(s=>`• ${esc(s.name)} <span style="opacity:.6">(שהוספת)</span>`
+    + (s.url?` — <a class="offer-link" href="${esc(s.url)}" target="_blank" rel="noopener">${esc(s.url).slice(0,60)}</a>`:''));
+  el.innerHTML=[...builtin,...user].join('<br>');
+}
+window.submitPressSource=async function(){
+  const msg=document.getElementById('press_src_msg');
+  const name=document.getElementById('press_src_name').value.trim();
+  const url=document.getElementById('press_src_url').value.trim();
+  if(!name||!url){ msg.textContent='חובה למלא שם וכתובת.'; msg.style.color='var(--bad)'; return; }
+  msg.textContent='שומר…'; msg.style.color='var(--muted)';
+  try{
+    if(!isConfigured()) throw new Error('Firebase לא מוגדר');
+    const rec={name, url, added_at:new Date().toISOString()};
+    const ref=await addDoc(collection(getDb(),'press_sources'), rec);
+    pressUserSources.push({id:ref.id, ...rec});
+    renderPressSourcesList();
+    document.getElementById('press_src_name').value=''; document.getElementById('press_src_url').value='';
+    msg.textContent='נשמר ✓ — ייכלל בסריקה היומית הבאה'; msg.style.color='var(--good)';
+  }catch(e){ msg.textContent='שגיאה: '+e.message; msg.style.color='var(--bad)'; }
+};
+function renderPress(){
+  renderPressSourcesList();
+  const t=document.getElementById('pressTable'); if(!t) return;
+  const at=document.getElementById('pressArchiveTable');
+  // source dropdown — keep current selection if still valid
+  const sel=document.getElementById('pressSourceSel');
+  const allSourcesSeen=new Map();
+  for(const day of pressDays) for(const a of (day.articles||[])) if(a.source) allSourcesSeen.set(a.source, a.source_name||a.source);
+  const cur=sel.value;
+  sel.innerHTML='<option value="">כל המקורות</option>'
+    + [...allSourcesSeen.entries()].map(([k,nm])=>`<option value="${esc(k)}">${esc(nm)}</option>`).join('');
+  if([...allSourcesSeen.keys()].includes(cur)) sel.value=cur; else pressSourceFilter='';
+
+  if(!pressDays.length){
+    t.querySelector('thead').innerHTML=''; t.querySelector('tbody').innerHTML='<tr><td class="no-data">אין עדיין נתונים — ייסרק אוטומטית ב-17:00.</td></tr>';
+    at.querySelector('thead').innerHTML=''; at.querySelector('tbody').innerHTML='<tr><td class="no-data">אין ארכיון עדיין.</td></tr>';
+    document.getElementById('pressFilterMeta').textContent=''; return;
+  }
+  const latest=pressDays[pressDays.length-1];
+  const arts=(latest.articles||[]).filter(pressMatchesFilter);
+  document.getElementById('pressMeta').textContent=`· ${(latest.articles||[]).length} כתבות · עודכן ${latest.date||''}`;
+  document.getElementById('pressFilterMeta').textContent = (pressSourceFilter||pressPizzaOnly) ? `· ${arts.length} מתאימות לסינון` : '';
+  t.querySelector('thead').innerHTML=`<tr><th>מקור</th><th>כותרת</th><th>תקציר</th><th>פורסם</th><th>קישור</th></tr>`;
+  t.querySelector('tbody').innerHTML= arts.length ? arts.map(a=>`<tr>${pressRow(a,null)}</tr>`).join('')
+    : `<tr><td class="no-data" colspan="5">${(latest.articles||[]).length?'אין כתבות התואמות לסינון.':'לא נמצאו כתבות רלוונטיות ב-24 השעות האחרונות.'}</td></tr>`;
+  // cumulative archive — newest first, deduped by URL
+  at.querySelector('thead').innerHTML=`<tr><th>נאסף</th><th>מקור</th><th>כותרת</th><th>תקציר</th><th>פורסם</th><th>קישור</th></tr>`;
+  const seen=new Set(), rows=[];
+  for(const day of [...pressDays].reverse())
+    for(const a of (day.articles||[])){
+      if(!a.url||seen.has(a.url)||!pressMatchesFilter(a)) continue;
+      seen.add(a.url); rows.push(`<tr>${pressRow(a,day.date)}</tr>`);
+    }
+  at.querySelector('tbody').innerHTML= rows.length?rows.join(''):`<tr><td class="no-data" colspan="6">אין ארכיון עדיין.</td></tr>`;
+}
+window.exportPressExcel=function(){
+  if(!pressDays.length){ alert('אין נתוני עיתונות לייצוא'); return; }
+  const rows=[['נאסף','מקור','כותרת','תקציר','פורסם','פיצה?','קישור']];
+  const seen=new Set();
+  for(const day of [...pressDays].reverse()) for(const a of (day.articles||[])){
+    if(!a.url||seen.has(a.url))continue; seen.add(a.url);
+    rows.push([day.date, a.source_name||a.source||'', a.title||'', a.summary||'', a.published||'', a.is_pizza?'כן':'', a.url||'']);
+  }
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'מעקב עיתונות');
+  XLSX.writeFile(wb,'press_monitoring.xlsx');
+};
+
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -1123,11 +2166,12 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,woltAll:wo,branchAll:br,ideas,userSources:us}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[];
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[];
+  const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds
-  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
+  const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...ppGenAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   if(allDates.length){ dateFrom.value=allDates[0]; dateTo.value=allDates[allDates.length-1]; }
 
   const last=history[history.length-1];

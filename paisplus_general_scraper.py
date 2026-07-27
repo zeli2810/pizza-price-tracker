@@ -1,14 +1,19 @@
 """
-Pais Plus pizza-deals scraper (https://paisplus.co.il/category/373)
+Pais Plus GENERAL benefits scraper (https://paisplus.co.il/) — "פייס פלוס – כללי".
 
-Scrapes every offer "card" on the page and records, per card: the pizza
-chain, the offer text, an auto-classified category (one pizza / two pizzas /
-etc.), the price, whether it's marked "favored" (מועדפת), a per-card
-screenshot, and a link to a full-page screenshot.
+Unlike paisplus_scraper.py (which scrapes the pizza-specific offers page,
+/category/373), this scrapes the site's HOMEPAGE — Pais Plus's full benefits
+catalog (concerts, retail discounts, movies, etc., not just pizza). Confirmed
+live: only ~6 of ~314 cards on the homepage even mention "פיצה"; the user
+explicitly asked for a duplicate dashboard sourced from this root URL anyway,
+aware that most cards here aren't pizza offers. Company/category
+classification (shared with paisplus_scraper) will label most of them
+"unidentified"/"other" since they're not pizza deals — that's expected, not
+a bug.
 
-Company/category are inferred from the card's own text (there's no public
-API exposing a clean taxonomy), so ambiguous cards fall back to
-"לא זוהה מהטקסט" — check the card screenshot's logo in that case.
+Card markup here uses `.card-item` (no `.category-page` suffix — confirmed
+by inspecting the live page) but is otherwise structurally identical to the
+pizza offers page, so the same field-extraction logic applies unchanged.
 """
 
 import json, re, sys, io
@@ -16,17 +21,19 @@ from pathlib import Path
 from datetime import datetime
 from playwright.sync_api import sync_playwright
 
-# Guarded by a sentinel: paisplus_general_scraper.py imports this module and
-# runs the same stdout/stderr setup itself — without the guard, wrapping an
-# already-wrapped stdout a second time makes the first (now-orphaned)
-# TextIOWrapper close the shared underlying buffer on GC, which then crashes
-# the second wrapper with "I/O operation on closed file."
+from paisplus_scraper import identify_company, classify_category, extract_extras, safe_filename, UA
+
+# Importing paisplus_scraper above already ran ITS stdout/stderr setup (and
+# set the sentinel below) — this guard makes sure we don't wrap an
+# already-wrapped stdout a second time, which would crash later with
+# "I/O operation on closed file" once the orphaned first wrapper is GC'd and
+# closes the shared underlying buffer out from under the second one.
 if getattr(sys, "_pizza_stdio_ready", False):
     pass
 elif sys.stdout is None:
     # Running under pythonw.exe (no console, e.g. from Task Scheduler) —
     # print() would crash, so write output to a log file instead.
-    _log_path = Path(__file__).parent / "data" / "paisplus" / "scrape_log.txt"
+    _log_path = Path(__file__).parent / "data" / "paisplus_general" / "scrape_log.txt"
     _log_path.parent.mkdir(parents=True, exist_ok=True)
     _log = open(_log_path, "a", encoding="utf-8")
     sys.stdout = sys.stderr = _log
@@ -36,119 +43,12 @@ elif sys.platform == "win32":
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="replace")
     sys._pizza_stdio_ready = True
 
-URL = "https://paisplus.co.il/category/373"
+URL = "https://paisplus.co.il/"
+CARD_SELECTOR = ".card-item"
 
 ROOT = Path(__file__).parent
-DATA_FILE = ROOT / "data" / "paisplus" / "offers.json"
-SHOT_DIR = ROOT / "data" / "paisplus" / "screenshots"
-
-UA = ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-      "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
-
-# ── company identification (by card text) ──────────────────────────────────
-COMPANY_KEYWORDS = [
-    ("דומינו",        "דומינו'ס"),
-    ("פיצה האט",      "פיצה האט"),
-    ("פאפא ג'ונס",    "פאפא ג'ונס"),
-    ("פאפא'ג",        "פאפא ג'ונס"),
-    ("פיצה פרגו",      "פיצה פרגו"),
-    ("פיצה שמש",      "פיצה שמש"),
-    ("פיצה סטורי",     "פיצה סטורי"),
-    ("ביג אפל פיצה",   "ביג אפל פיצה"),
-    ("ביג אפל",        "ביג אפל פיצה"),
-    ("פיצה עגבניה",     "פיצה עגבניה"),
-    ("עגבניה",         "פיצה עגבניה"),
-]
-UNKNOWN_COMPANY = "לא זוהה מהטקסט (בדקו את הלוגו בצילום)"
-
-# Many cards show the chain only as a logo image, not in the text — these
-# specific recurring product IDs were confirmed once by eye from their cube
-# screenshot. Add more entries here as new unidentified IDs get confirmed.
-ID_OVERRIDES = {
-    "33617": "פאפא ג'ונס",
-    "22161": "דומינו'ס",
-    "22240": "דומינו'ס",
-    "22241": "דומינו'ס",
-    "22242": "דומינו'ס",
-    "22250": "דומינו'ס",
-    "22252": "דומינו'ס",
-    "23699": "דומינו'ס",
-    "22556": "פיצה האט",
-}
-
-# Chain names that themselves contain the word "פיצה" — stripped out before
-# scanning for pizza-count keywords so the company name isn't mistaken for
-# an actual pizza mentioned in the offer.
-BRAND_PHRASES_WITH_PIZZA_WORD = ["פיצה פרגו", "פיצה האט", "פיצה שמש", "פיצה סטורי", "פיצה עגבניה"]
-
-HEBREW_NUMBERS = {
-    "שני": 2, "שתי": 2, "שלוש": 3, "שלושה": 3, "ארבע": 4, "ארבעה": 4,
-    "חמש": 5, "חמישה": 5, "שש": 6, "שישה": 6, "שבע": 7, "שבעה": 7,
-    "שמונה": 8, "תשע": 9, "תשעה": 9, "עשר": 10, "עשרה": 10,
-}
-COUNT_RE = re.compile(
-    r'(\d+|' + "|".join(HEBREW_NUMBERS) + r')\s*(פיצות|משפחתיות|משפחתיים|מגשים)'
-)
-PIZZA_WORD_RE = re.compile(r'(פיצות|פיצה|משפחתיות|משפחתיים|משפחתית|משפחתי|מגשים|מגש)')
-PLURAL_NO_COUNT_RE = re.compile(r'(פיצות|משפחתיות|משפחתיים|מגשים)')
-
-
-def identify_company(text, product_id=None):
-    if product_id in ID_OVERRIDES:
-        return ID_OVERRIDES[product_id], "לוגו (מזהה ידוע)"
-    for kw, name in COMPANY_KEYWORDS:
-        if kw in text:
-            return name, "טקסט"
-    return UNKNOWN_COMPANY, "לא זוהה"
-
-
-def classify_category(text):
-    stripped = text
-    for phrase in BRAND_PHRASES_WITH_PIZZA_WORD:
-        stripped = stripped.replace(phrase, " ")
-
-    counts = []
-    for m in COUNT_RE.finditer(stripped):
-        raw = m.group(1)
-        counts.append(int(raw) if raw.isdigit() else HEBREW_NUMBERS[raw])
-    if counts:
-        n = max(counts)
-        if n == 1:
-            return "פיצה אחת"
-        if n == 2:
-            return "שתי פיצות"
-        return f"{n} פיצות"
-
-    if not PIZZA_WORD_RE.search(stripped):
-        return "אחר / לא כולל פיצה מפורשת"
-
-    if PLURAL_NO_COUNT_RE.search(stripped):
-        return "מספר פיצות (כמות לא צוינה)"
-
-    return "פיצה אחת"
-
-
-def extract_extras(title):
-    """Everything after the first '+' in the title = what's included besides the pizza(s)."""
-    parts = title.split("+")
-    if len(parts) <= 1:
-        return ""
-    extras = [p.strip() for p in parts[1:]]
-    # Drop a trailing " - <company>" tail from the last extra segment, if present.
-    if extras:
-        last = extras[-1]
-        m = re.split(r"\s-\s", last)
-        if len(m) > 1:
-            for kw, _ in COMPANY_KEYWORDS:
-                if kw in m[-1]:
-                    last = m[0].strip()
-                    break
-        extras[-1] = last
-    return " | ".join(e for e in extras if e)
-
-
-def safe_filename(s):
-    return re.sub(r"[^\w\-]+", "_", s)[:120]
+DATA_FILE = ROOT / "data" / "paisplus_general" / "offers.json"
+SHOT_DIR = ROOT / "data" / "paisplus_general" / "screenshots"
 
 
 def run_scrape(verbose=True):
@@ -172,21 +72,21 @@ def run_scrape(verbose=True):
         page.goto(URL, timeout=45000, wait_until="load")
         page.wait_for_timeout(3000)
         try:
-            page.wait_for_selector(".card-item.category-page", timeout=15000)
+            page.wait_for_selector(CARD_SELECTOR, timeout=15000)
         except Exception:
             pass
 
         # Scroll to bottom repeatedly in case of lazy-loaded cards.
         prev_count = -1
         for _ in range(15):
-            count = page.locator(".card-item.category-page").count()
+            count = page.locator(CARD_SELECTOR).count()
             if count == prev_count:
                 break
             prev_count = count
             page.mouse.wheel(0, 3000)
             page.wait_for_timeout(1000)
 
-        cards = page.locator(".card-item.category-page")
+        cards = page.locator(CARD_SELECTOR)
         n = cards.count()
         if verbose:
             print(f"  נמצאו {n} קוביות הצעה")
@@ -312,12 +212,12 @@ def run_scrape(verbose=True):
     # Push to Firestore (no-op if credentials aren't configured)
     try:
         import firestore_sync
-        firestore_sync.push_paisplus_offers(offers, date=today)
+        firestore_sync.push_paisplus_general_offers(offers, date=today)
         firestore_sync.mark_site_status(
-            "paisplus", ok=True,
+            "paisplus_general", ok=True,
             timestamp=offers[0].get("timestamp") if offers else today)
         if verbose and firestore_sync.is_enabled():
-            print("  Synced Pais Plus → Firestore ✓")
+            print("  Synced Pais Plus (general) → Firestore ✓")
     except Exception as e:
         if verbose:
             print(f"  Firestore sync skipped: {e}")

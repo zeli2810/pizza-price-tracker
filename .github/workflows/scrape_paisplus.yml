@@ -38,6 +38,9 @@ jobs:
       - name: Run Pais Plus scraper
         run: python paisplus_scraper.py
 
+      - name: Run Pais Plus (general) scraper
+        run: python paisplus_general_scraper.py || true
+
       - name: Run Wolt scraper
         run: python wolt_scraper.py || true
 
@@ -45,6 +48,6 @@ jobs:
         run: |
           git config user.name "pizza-price-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add data/paisplus/ data/wolt_offers.json
+          git add data/paisplus/ data/paisplus_general/ data/wolt_offers.json
           git diff --quiet --cached || git commit -m "Update Pais Plus + Wolt offers [skip ci]"
           git push

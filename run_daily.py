@@ -12,8 +12,10 @@ Run it manually with:  python run_daily.py   (or double-click run_daily.bat)
 
 import os
 import sys
+import time
 import subprocess
 import datetime
+import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -34,13 +36,61 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
             pass
 
 LOG = HERE / "run_daily.log"
-SCRAPERS = ["multi_scraper.py", "branch_scraper.py", "paisplus_scraper.py",
-            "wolt_scraper.py", "marketing_scraper.py"]
+SCRAPERS = ["multi_scraper.py", "offer_scraper.py", "branch_scraper.py",
+            "paisplus_scraper.py", "paisplus_general_scraper.py", "wolt_scraper.py",
+            "tabit_scraper.py", "qsr_scraper.py", "press_scraper.py", "marketing_scraper.py"]
 
 
 def log(msg):
     with open(LOG, "a", encoding="utf-8") as f:
         f.write(msg + "\n")
+
+
+# Ollama used to auto-start at login and sit in the background all day eating
+# RAM/CPU (llama-server). It's only needed for the ~15-60min marketing_scraper
+# step, so we start it just before that step and stop it right after.
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://localhost:11434")
+
+
+def _ollama_up():
+    try:
+        urllib.request.urlopen(f"{OLLAMA_URL}/api/tags", timeout=3)
+        return True
+    except Exception:
+        return False
+
+
+def start_ollama():
+    if _ollama_up():
+        log("  Ollama already running.")
+        return None
+    try:
+        proc = subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL,
+                                stderr=subprocess.DEVNULL, cwd=str(HERE))
+    except Exception as e:
+        log(f"  ⚠ could not start Ollama: {e}")
+        return None
+    for _ in range(30):          # up to ~30s for the server to come up
+        if _ollama_up():
+            log("  Ollama started ✓")
+            return proc
+        time.sleep(1)
+    log("  ⚠ Ollama did not respond in time.")
+    return proc
+
+
+def stop_ollama(proc):
+    if proc is None:
+        return
+    try:
+        proc.terminate()
+        proc.wait(timeout=10)
+    except Exception:
+        try:
+            proc.kill()
+        except Exception:
+            pass
+    log("  Ollama stopped.")
 
 
 def main():
@@ -50,16 +100,26 @@ def main():
             f"— data will save locally but NOT push to Firestore.")
     for mod in SCRAPERS:
         log(f"[{datetime.datetime.now():%H:%M:%S}] running {mod} ...")
+        # Marketing (local LLM) and QSR (chain pages through Cloudflare) are the
+        # slow ones — don't time-limit them; the others finish in minutes.
+        timeout = None if mod in ("marketing_scraper.py", "qsr_scraper.py") else 900
+
+        # Ollama only needs to run for the marketing step — start it fresh here
+        # and stop it right after, instead of leaving it resident all day.
+        ollama_proc = start_ollama() if mod == "marketing_scraper.py" else None
         try:
             r = subprocess.run([sys.executable, str(HERE / mod)], cwd=str(HERE),
                                capture_output=True, text=True, encoding="utf-8",
-                               errors="replace", timeout=900)
+                               errors="replace", timeout=timeout)
             if r.stdout:
                 log(r.stdout.rstrip())
             if r.returncode != 0 and r.stderr:
                 log("STDERR:\n" + r.stderr.rstrip())
         except Exception as e:
             log(f"  ERROR running {mod}: {e}")
+        finally:
+            if mod == "marketing_scraper.py":
+                stop_ollama(ollama_proc)
     log(f"[{datetime.datetime.now():%Y-%m-%d %H:%M:%S}] DONE")
 
 

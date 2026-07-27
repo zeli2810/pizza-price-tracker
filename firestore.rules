@@ -18,6 +18,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /paisplus_general_offers/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /wolt_offers/{date} {
       allow read: if true;
       allow write: if false;
@@ -48,9 +52,46 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /offer_comparison/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /tabit_index/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /qsr_daily/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /qsr_chain_news/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /press_daily/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
+    match /press_sources/{id} {
+      allow read: if true;
+      // User-added press sources from the dashboard (included in the next daily scan).
+      allow create: if request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() < 200
+        && request.resource.data.url is string
+        && request.resource.data.url.size() > 0;
+      allow update, delete: if false;
+    }
     match /meta/{doc} {
       allow read: if true;
       allow write: if false;
+    }
+    match /marketing_config/{doc} {
+      allow read: if true;
+      // User's search directives from the dashboard (guides daily collection).
+      allow create, update: if request.resource.data.text is string
+        && request.resource.data.text.size() < 20000;
+      allow delete: if false;
     }
 
     // Everything else is denied by default.

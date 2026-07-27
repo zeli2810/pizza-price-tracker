@@ -218,3 +218,29 @@ def push_paisplus_offers(offers, date=None):
     except Exception as e:
         _log(f"push_paisplus_offers failed: {e}")
         return False
+
+
+def push_paisplus_general_offers(offers, date=None):
+    """
+    Store the Pais Plus GENERAL (homepage) offers under
+    paisplus_general_offers/{date} — kept separate from paisplus_offers
+    since it's a different source page (see paisplus_general_scraper.py).
+    """
+    db = get_client()
+    if db is None:
+        return False
+    if not offers:
+        return False
+    date = date or (offers[0].get("date") if offers else None)
+    if not date:
+        return False
+    try:
+        db.collection("paisplus_general_offers").document(date).set({
+            "date": date,
+            "offers": offers,
+        })
+        _log(f"pushed paisplus_general_offers/{date} ({len(offers)} offers) ✓")
+        return True
+    except Exception as e:
+        _log(f"push_paisplus_general_offers failed: {e}")
+        return False
