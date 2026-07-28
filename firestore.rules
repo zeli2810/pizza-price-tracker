@@ -82,6 +82,10 @@ service cloud.firestore {
         && request.resource.data.url.size() > 0;
       allow update, delete: if false;
     }
+    match /wolt_competitors/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /meta/{doc} {
       allow read: if true;
       allow write: if false;

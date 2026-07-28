@@ -38,6 +38,7 @@ if not os.environ.get("ANTHROPIC_API_KEY"):
 LOG = HERE / "run_daily.log"
 SCRAPERS = ["multi_scraper.py", "offer_scraper.py", "branch_scraper.py",
             "paisplus_scraper.py", "paisplus_general_scraper.py", "wolt_scraper.py",
+            "wolt_competitors_scraper.py",
             "tabit_scraper.py", "qsr_scraper.py", "press_scraper.py", "marketing_scraper.py"]
 
 
@@ -100,9 +101,11 @@ def main():
             f"— data will save locally but NOT push to Firestore.")
     for mod in SCRAPERS:
         log(f"[{datetime.datetime.now():%H:%M:%S}] running {mod} ...")
-        # Marketing (local LLM) and QSR (chain pages through Cloudflare) are the
-        # slow ones — don't time-limit them; the others finish in minutes.
-        timeout = None if mod in ("marketing_scraper.py", "qsr_scraper.py") else 900
+        # Marketing (local LLM), QSR (chain pages through Cloudflare), and the
+        # Wolt competitor scan (~50 cities, 2 searches each) are the slow ones —
+        # don't time-limit them; the others finish in minutes.
+        timeout = None if mod in ("marketing_scraper.py", "qsr_scraper.py",
+                                   "wolt_competitors_scraper.py") else 900
 
         # Ollama only needs to run for the marketing step — start it fresh here
         # and stop it right after, instead of leaving it resident all day.

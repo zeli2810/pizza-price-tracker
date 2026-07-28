@@ -173,15 +173,16 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <!-- Tab navigation -->
 <nav class="tabs" id="tabs">
   <button class="tab active" data-tab="compare">השוואת רשתות</button>
-  <button class="tab" data-tab="offers">השוואת הצעות</button>
+  <button class="tab" data-tab="offers" style="display:none">השוואת הצעות</button>
   <button class="tab" data-tab="paisplus">פייס פלוס</button>
   <button class="tab" data-tab="paisplusGeneral">פייס פלוס – כללי</button>
   <button class="tab" data-tab="wolt">וולט</button>
+  <button class="tab" data-tab="woltCompetitors">פעילות מתחרים בוולט</button>
   <button class="tab" data-tab="branches">כמות סניפים</button>
   <button class="tab" data-tab="tabit">TABIT מדד</button>
   <button class="tab" data-tab="qsr">QSR Magazine</button>
   <button class="tab" data-tab="press">מעקב עיתונות</button>
-  <button class="tab" data-tab="ideas">רעיונאות</button>
+  <button class="tab" data-tab="ideas" style="display:none">רעיונאות</button>
 </nav>
 
 <!-- Global period filter (applies to all tabs) -->
@@ -316,6 +317,25 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div class="tbl-wrap">
       <table id="woltHistTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
+  </section>
+</div>
+
+<!-- ============ TAB: Wolt competitor presence by city ============ -->
+<div class="panel" id="panel-woltCompetitors">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportWoltCompetitorsExcel()">⬇ ייצוא לאקסל</button>
+  </div>
+  <section>
+    <h2>פעילות מתחרים בוולט <span id="woltCompMeta" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">
+      וולט לא מבחין בין ערים בודדות — הוא מחלק את הארץ ל-~20 "אזורי משלוח" קבועים (למשל אזור "השרון" אחד מכיל את נתניה, כפר סבא, רעננה והוד השרון יחד).
+      כל שורה היא אזור אמיתי ומאומת של וולט, עם רשימת הערים (מעל 40 אלף תושבים) שבתוכו.
+      ✓ = יש הצעה בוולט באזור · — = לא נמצא · ? = הבדיקה נכשלה (ייבדק שוב בסריקה הבאה).
+    </p>
+    <div class="tbl-wrap">
+      <table id="woltCompTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
+    <div id="woltCompUncovered" style="font-size:.72rem;color:var(--muted);margin-top:10px"></div>
   </section>
 </div>
 
@@ -612,6 +632,7 @@ let qsrChainFilter = '';  // '' = all three chains; else a specific chain name
 let pressDays = [];        // Press monitoring daily docs, ascending by date
 let pressUserSources = []; // user-added press_sources docs
 let pressSourceFilter = '';// '' = all sources; else a source key
+let woltCompetitors = null; // {checked_at, cities:[{city,papa_johns,pizza_hut,status}]}
 let pressPizzaOnly = false;
 let ideaTodayOnly = false;
 let usingFallback = false;
@@ -833,7 +854,13 @@ async function loadFromFirestore(){
     const ps=await getDocs(collection(db,'press_sources'));
     pressUserSources = ps.docs.map(d=>({id:d.id, ...d.data()}));
   }catch(e){}
-  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources };
+  // Wolt competitor presence (Papa John's / Pizza Hut) by city
+  let woltCompetitors=null;
+  try{
+    const wc=await getDoc(doc(db,'wolt_competitors','latest'));
+    if(wc.exists()) woltCompetitors=wc.data();
+  }catch(e){}
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors };
 }
 
 async function loadFallback(){
@@ -853,6 +880,9 @@ async function loadFallback(){
   for(const u of ['data/branch_counts.json','../data/branch_counts.json','/data/branch_counts.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.branchAll=await r.json(); break; } }catch(e){}
   }
+  for(const u of ['data/wolt_competitors.json','../data/wolt_competitors.json','/data/wolt_competitors.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.woltCompetitors=await r.json(); break; } }catch(e){}
+  }
   return out;
 }
 
@@ -867,22 +897,23 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length){
+      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
         if(!ppGenAll||!ppGenAll.length) ppGenAll=fb.ppGenAll;
         if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
+        if(!woltCompetitors) woltCompetitors=fb.woltCompetitors;
       }
-      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[] };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -2148,7 +2179,39 @@ window.exportPressExcel=function(){
   XLSX.writeFile(wb,'press_monitoring.xlsx');
 };
 
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderIdeas(); }
+function renderWoltCompetitors(){
+  const t=document.getElementById('woltCompTable'); if(!t) return;
+  const areas=(woltCompetitors&&woltCompetitors.areas)||[];
+  const uncovered=(woltCompetitors&&woltCompetitors.uncovered_cities)||[];
+  const uncEl=document.getElementById('woltCompUncovered');
+  if(!areas.length){
+    t.querySelector('thead').innerHTML=''; t.querySelector('tbody').innerHTML='<tr><td class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</td></tr>';
+    document.getElementById('woltCompMeta').textContent=''; if(uncEl) uncEl.textContent=''; return;
+  }
+  const pjCount=areas.filter(a=>a.papa_johns).length, phCount=areas.filter(a=>a.pizza_hut).length;
+  document.getElementById('woltCompMeta').textContent=`· ${areas.length} אזורי משלוח · פאפא ג'ונס ב-${pjCount} · פיצה האט ב-${phCount} · נבדק ${woltCompetitors.checked_at||''}`;
+  const mark=(v,status)=> v?'<span style="color:var(--good);font-weight:700">✓</span>'
+    : (status&&status!=='ok'?'<span style="color:var(--muted)" title="'+esc(status)+'">?</span>':'<span style="color:var(--muted)">—</span>');
+  t.querySelector('thead').innerHTML='<tr><th>אזור משלוח בוולט</th><th>ערים באזור</th><th>פאפא ג\'ונס</th><th>פיצה האט</th></tr>';
+  const rows=[...areas].sort((a,b)=>(a.label||'').localeCompare(b.label||'','he'));
+  t.querySelector('tbody').innerHTML=rows.map(a=>`<tr><td><b>${esc(a.label||a.slug||'')}</b></td>`
+    +`<td style="font-size:.78rem;color:var(--muted)">${esc((a.cities||[]).join(', '))}</td>`
+    +`<td>${mark(a.papa_johns,a.status)}</td><td>${mark(a.pizza_hut,a.status)}</td></tr>`).join('');
+  if(uncEl) uncEl.textContent = uncovered.length
+    ? `⚠ לא נבדקו (אין אזור וולט מובחן שמזוהה עבורן): ${uncovered.join(', ')}` : '';
+}
+window.exportWoltCompetitorsExcel=function(){
+  const areas=(woltCompetitors&&woltCompetitors.areas)||[];
+  if(!areas.length){ alert('אין נתונים לייצוא'); return; }
+  const rows=[['אזור משלוח בוולט','ערים באזור','פאפא ג\'ונס','פיצה האט','סטטוס']];
+  for(const a of [...areas].sort((x,y)=>(x.label||'').localeCompare(y.label||'','he')))
+    rows.push([a.label||a.slug||'', (a.cities||[]).join(', '), a.papa_johns?'כן':'לא', a.pizza_hut?'כן':'לא', a.status||'']);
+  const uncovered=(woltCompetitors&&woltCompetitors.uncovered_cities)||[];
+  if(uncovered.length) rows.push([], ['לא נבדקו:', uncovered.join(', ')]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'מתחרים בוולט');
+  XLSX.writeFile(wb,'wolt_competitors.xlsx');
+};
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -2166,8 +2229,8 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[];
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null;
   const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds

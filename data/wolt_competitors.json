@@ -1,0 +1,239 @@
+{
+  "checked_at": "2026-07-28 19:27:17",
+  "areas": [
+    {
+      "slug": "tel-aviv",
+      "label": "תל אביב וגוש דן",
+      "cities": [
+        "תל אביב-יפו",
+        "רמת גן",
+        "בני ברק",
+        "חולון",
+        "בת ים",
+        "גבעתיים",
+        "קריית אונו",
+        "אור יהודה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "herzliya",
+      "label": "הרצליה",
+      "cities": [
+        "הרצליה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "hasharon",
+      "label": "השרון",
+      "cities": [
+        "נתניה",
+        "כפר סבא",
+        "רעננה",
+        "הוד השרון",
+        "רמת השרון"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "petah-tikva",
+      "label": "פתח תקווה והסביבה",
+      "cities": [
+        "פתח תקווה",
+        "ראש העין",
+        "לוד",
+        "רמלה",
+        "אלעד"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "beer-sheva",
+      "label": "באר שבע והנגב",
+      "cities": [
+        "באר שבע",
+        "דימונה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "ashkelon",
+      "label": "אשקלון",
+      "cities": [
+        "אשקלון"
+      ],
+      "papa_johns": false,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "jerusalem",
+      "label": "ירושלים",
+      "cities": [
+        "ירושלים",
+        "ביתר עילית"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "haifa",
+      "label": "חיפה והקריות",
+      "cities": [
+        "חיפה",
+        "קריית אתא",
+        "קריית ביאליק",
+        "קריית מוצקין"
+      ],
+      "papa_johns": true,
+      "pizza_hut": false,
+      "status": "ok"
+    },
+    {
+      "slug": "modiin",
+      "label": "מודיעין והסביבה",
+      "cities": [
+        "מודיעין-מכבים-רעות",
+        "מודיעין עילית"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "eilat",
+      "label": "אילת",
+      "cities": [
+        "אילת"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "rishon-lezion-hashfela-area",
+      "label": "ראשון לציון והשפלה",
+      "cities": [
+        "ראשון לציון",
+        "רחובות",
+        "יבנה"
+      ],
+      "papa_johns": false,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "ashdod-and-lachish-area",
+      "label": "אשדוד ולכיש",
+      "cities": [
+        "אשדוד",
+        "קריית גת"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "acre-nahariya-area",
+      "label": "עכו-נהריה",
+      "cities": [
+        "עכו",
+        "נהריה",
+        "שפרעם"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "beit-shemesh-area",
+      "label": "בית שמש",
+      "cities": [
+        "בית שמש"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "tiberias-area",
+      "label": "טבריה",
+      "cities": [
+        "טבריה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "karmiel-area",
+      "label": "כרמיאל",
+      "cities": [
+        "כרמיאל"
+      ],
+      "papa_johns": false,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "afula-emek-yizrael-area",
+      "label": "עפולה ועמק יזרעאל",
+      "cities": [
+        "עפולה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "nazareth---nof-hagalil-area",
+      "label": "נצרת ונוף הגליל",
+      "cities": [
+        "נצרת",
+        "נוף הגליל"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "netivot-sderot-area",
+      "label": "נתיבות-שדרות",
+      "cities": [
+        "נתיבות",
+        "אופקים"
+      ],
+      "papa_johns": false,
+      "pizza_hut": true,
+      "status": "ok"
+    },
+    {
+      "slug": "pardes-hanna",
+      "label": "פרדס חנה וחדרה",
+      "cities": [
+        "פרדס חנה-כרכור",
+        "חדרה"
+      ],
+      "papa_johns": true,
+      "pizza_hut": true,
+      "status": "ok"
+    }
+  ],
+  "uncovered_cities": [
+    "רהט",
+    "אום אל-פחם",
+    "טייבה"
+  ]
+}
