@@ -1,28 +1,40 @@
 """
 Press monitoring scraper — "מעקב עיתונות".
 
-Scans Israeli news sites daily for articles about restaurants, home food
-delivery, and (especially) pizza — NOT general news. Each run collects
-articles published in the last 24h that match the topic, with a short
-(already-Hebrew) summary and a link. Stored per day in Firestore
-(`press_daily/{date}`); the dashboard shows today's table on top and a
-cumulative archive (built from all daily docs) below.
+Scans Israeli news sites daily for BUSINESS news about restaurants and home
+food delivery (chains, openings/closures, franchising, funding, M&A, revenue,
+labor disputes) — NOT general news, and NOT recipes/reviews/lifestyle pieces
+about food. Each run collects articles published in the last 24h that pass
+BOTH filters below, with a short (already-Hebrew) summary and a link. Stored
+per day in Firestore (`press_daily/{date}`); the dashboard shows today's
+table on top and a cumulative archive (built from all daily docs) below.
 
 Fixed sources (RSS where available):
   globes    -> the "נתח שוק וצרכנות" (market share / consumerism) section RSS —
-               retail chains, food brands, consumer business (filtered to topic)
+               retail chains, food brands, consumer business
   mako      -> mako's dedicated restaurants section RSS (Ynet-group sister
                site; Ynet's own feed is general politics/economy, so this
-               replaces it — same topic filter still applies)
-  themarker -> the "tm-consumer" (consumer/retail) section RSS (filtered to topic)
-  haaretz   -> the "אוכל" (Food) section RSS (filtered to topic)
-  ice       -> general RSS feed (filtered to topic) — ice.co.il has no
-               food/business-specific section feed (checked: /rss section
-               pages have no RSS autodiscovery, and guessed path variants
-               all fall back to the same generic mix), so this one still
-               relies entirely on the keyword filter below.
+               replaces it)
+  themarker -> the "tm-consumer" (consumer/retail) section RSS
+  ice       -> general RSS feed — ice.co.il has no food/business-specific
+               section feed (checked: /rss section pages have no RSS
+               autodiscovery, and guessed path variants all fall back to the
+               same generic mix), so this one relies entirely on the filters
+               below.
   calcalist -> no public RSS (blocked); covered via Bing News site-restricted
                search per topic keyword instead.
+
+(Haaretz's "אוכל"/Food section was tried here previously — dropped: it's
+pure recipes/cooking content, which by definition never has a business
+angle, so every article from it was going to be rejected by the business
+filter anyway.)
+
+Every article must pass TWO independent filters:
+  1. _is_relevant() — is it about restaurants/food-delivery/pizza at all?
+  2. _is_business() — does it actually carry a BUSINESS angle (chain/branch,
+     franchising, ownership, funding, M&A, revenue, closures, labor)? This
+     is what excludes recipes, dish reviews, and "we tasted everything"
+     lifestyle pieces even from sources that are otherwise on-topic.
 
 Note: the general/homepage feeds for globes, ynet, and themarker used to be
 wired in here directly — they're almost entirely stock-market/politics/crime
@@ -30,11 +42,11 @@ news, so on days where a headline happened to mention a topic keyword in
 passing, unrelated political/financial articles leaked into the dashboard.
 Swapping in each site's actual food/consumer/restaurant section (or, for
 Ynet, its sister site's restaurants feed) fixes that at the source; the
-keyword filter is a second layer, not the only one.
+keyword filters are a second layer, not the only one.
 
 Users can add more sites from the dashboard (Firestore `press_sources`); at
 scrape time we auto-discover each one's RSS feed the same way marketing_scraper
-does, and fold it into the same topic filter.
+does, and fold it into the same two filters.
 """
 
 import re, sys, io, html, time
@@ -51,12 +63,10 @@ WINDOW_HOURS = 24
 FIXED_SOURCES = [
     {"key": "globes", "name": "גלובס · נתח שוק וצרכנות", "mode": "rss",
      "feed_url": "https://www.globes.co.il/webservice/rss/rssfeeder.asmx/FeederNode?iID=821"},
-    {"key": "mako", "name": "מאקו · מסעדות", "mode": "rss", "topic_prefiltered": True,
+    {"key": "mako", "name": "מאקו · מסעדות", "mode": "rss", "restaurant_dedicated": True,
      "feed_url": "https://rcs.mako.co.il/rss/food-restaurants.xml"},
     {"key": "themarker", "name": "דה מרקר · צרכנות", "mode": "rss",
      "feed_url": "https://www.themarker.com/srv/tm-consumer"},
-    {"key": "haaretz", "name": "הארץ · אוכל", "mode": "rss", "topic_prefiltered": True,
-     "feed_url": "https://www.haaretz.co.il/srv/%D7%90%D7%95%D7%9B%D7%9C--%D7%94%D7%90%D7%A8%D7%A5-rss"},
     {"key": "ice", "name": "Ice", "mode": "rss", "feed_url": "https://www.ice.co.il/rss"},
     {"key": "calcalist", "name": "כלכליסט", "mode": "search", "domain": "calcalist.co.il"},
 ]
@@ -71,6 +81,22 @@ KW_GENERAL_WORDS = {"מסעדה", "מסעדות", "מסעדנות", "מסעדת"
 KW_GENERAL_PHRASES = ["רשת מסעדות", "רשתות מזון", "משלוחי מזון", "משלוח מזון",
                       "משלוח אוכל", "משלוחי אוכל", "שליחי מזון", "תן ביס",
                       "אוכל מהיר", "מזון מהיר"]
+
+# Business-dimension filter: an article must ALSO carry one of these signals
+# to qualify — otherwise it's a recipe, a dish review, or a "we tasted
+# everything" lifestyle piece, none of which belong in a BUSINESS monitor.
+BIZ_WORDS = {"רשת", "רשתות", "זכיינות", "זכיין", "זכיינים", "סניף", "סניפים",
+             "בעלים", "יזם", "יזמים", "משקיע", "משקיעים", "השקעה", "השקעות",
+             "רכישה", "רכש", "נרכש", "נרכשה", "מיזוג", "מחזור", "הכנסות",
+             "רווח", "רווחים", "הפסד", "הפסדים", "קריסה", "קרס", "קרסה",
+             "עובדים", "פיטורים", "פיטורי", "הרחבה", "התרחבות", "התפשטות",
+             "קמעונאות", "קמעונאי", "קמעונאים", "מכירות", "הנפקה", "גיוס",
+             "תאגיד", "חברה", "חברת", "מנכ", "פרנצ'ייז", "פרנצ׳ייז"}
+BIZ_PHRASES = ["פשיטת רגל", "גיוס הון", "הון סיכון", "דוחות כספיים", "דוח כספי",
+               "סגר את שעריו", "סגרה את שעריה", "פתח סניף", "פתחה סניף",
+               "פתיחת סניף", "סגר סניף", "סגרה סניף", "סגירת סניף",
+               "ועד עובדים", "סכסוך עבודה", "מיליון שקל", "מיליון ש\"ח",
+               "מיליוני שקלים"]
 
 # Naive substring search is unsafe in Hebrew: "הקפיצה" (jumped) contains the
 # literal substring "פיצה" (pizza). Instead we tokenize into whole words and
@@ -117,6 +143,12 @@ def _is_relevant(text):
     if _tokens(text) & KW_GENERAL_WORDS:
         return True
     return any(ph in (text or "") for ph in KW_GENERAL_PHRASES)
+
+
+def _is_business(text):
+    if _tokens(text) & BIZ_WORDS:
+        return True
+    return any(ph in (text or "") for ph in BIZ_PHRASES)
 
 
 def _clean(s):
@@ -171,11 +203,14 @@ def collect_source(src, verbose=True):
         if e["age_h"] > WINDOW_HOURS:
             continue
         hay = f"{e['title']} {e['desc']}"
-        # A feed that's already a dedicated restaurants/food section (mako,
-        # haaretz) doesn't need the generic keyword filter — its articles
-        # often never say the literal word "מסעדה" (e.g. a sushi-bar opening
-        # piece), which the filter would otherwise wrongly drop.
-        if not src.get("topic_prefiltered") and not _is_relevant(hay):
+        # A feed whose entire section IS restaurants (mako) doesn't need the
+        # generic topic check — e.g. a sushi-bar opening piece never says the
+        # literal word "מסעדה". But EVERY source, including this one, must
+        # still pass the business-angle check: that's what excludes recipes,
+        # dish reviews, and "we tasted everything" lifestyle pieces.
+        if not src.get("restaurant_dedicated") and not _is_relevant(hay):
+            continue
+        if not _is_business(hay):
             continue
         out.append({
             "source": src["key"], "source_name": src["name"],
