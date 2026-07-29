@@ -1973,8 +1973,13 @@ function svgIndexChart(months, series, opts={}){
     s+=`<text x="${padL-6}" y="${yy+3}" text-anchor="end" font-size="10" fill="var(--muted)">${Math.round(val)}</text>`; }
   if(opts.base!=null && opts.base>=mn && opts.base<=mx){ const yb=Y(opts.base);
     s+=`<line x1="${padL}" y1="${yb}" x2="${W-padR}" y2="${yb}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="4 3" opacity=".7"/>`; }
+  // Always label the last point too — otherwise even x-axis sampling can
+  // leave the most recent date unlabeled, making a fully up-to-date chart
+  // look like it stopped earlier than it did.
   const step=Math.max(1,Math.ceil(months.length/6));
-  for(let i=0;i<months.length;i+=step) s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9" fill="var(--muted)">${months[i]}</text>`;
+  const labelIdx=new Set(); for(let i=0;i<months.length;i+=step) labelIdx.add(i);
+  labelIdx.add(months.length-1);
+  for(const i of [...labelIdx].sort((a,b)=>a-b)) s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9" fill="var(--muted)">${months[i]}</text>`;
   for(const ser of series){ let seg=[];
     const flush=()=>{ if(seg.length>1) s+=`<polyline points="${seg.join(' ')}" fill="none" stroke="${ser.color}" stroke-width="2"/>`; seg=[]; };
     ser.values.forEach((v,i)=>{ if(v==null) flush(); else seg.push(`${X(i).toFixed(1)},${Y(v).toFixed(1)}`); });
