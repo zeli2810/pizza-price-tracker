@@ -549,17 +549,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
       <a class="action" href="https://edge.boi.gov.il/#/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: בנק ישראל · Edge</a>
     </div>
     <h2>רכישות בכרטיסי אשראי <span id="ccpMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
-    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">היקף רכישות יומי בכרטיסי אשראי במשק, ממקורות בנק ישראל — מיליוני ₪, מנוכה עונתיות ולוח שנה, ממוצע נע 7 ימים. מתחילת הנתונים ועד היום.</p>
-    <div class="controls">
-      <label style="font-size:.8rem;color:var(--muted)">תקופה:
-        <select id="ccpPeriodSel">
-          <option value="all">הכל (מתחילת הנתונים)</option>
-          <option value="y1">שנה אחרונה</option>
-          <option value="y3">3 שנים אחרונות</option>
-          <option value="y5" selected>5 שנים אחרונות</option>
-          <option value="y10">10 שנים אחרונות</option>
-        </select></label>
-    </div>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">היקף רכישות יומי בכרטיסי אשראי במשק, ממקורות בנק ישראל — מיליוני ₪, מנוכה עונתיות ולוח שנה, ממוצע נע 7 ימים. מתחילת הנתונים ועד היום. נשלט על ידי מסנן "תקופה" למעלה.</p>
     <div id="ccpChart" class="chartbox"><div class="no-data">טוען…</div></div>
   </section>
   <section>
@@ -778,17 +768,9 @@ window.toggleWoltSelected=function(){
   renderWolt(); renderWoltDaily(); renderWoltHistory();
 };
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
-// CCP chart (daily, 10+ years of data) has its own period filter, independent
-// of the global one — the full range compresses ~3800 daily points into one
-// view, which can visually read as "not reaching today"; default to a
-// narrower recent window so the line's current end is legible.
-let ccpPeriod='y5';
-const CCP_PERIOD_DAYS={y1:365,y3:365*3,y5:365*5,y10:365*10};
-function viewCcp(){
-  const pts=(ccpData&&ccpData.points)||[];
-  const n=CCP_PERIOD_DAYS[ccpPeriod];
-  return n ? pts.slice(-n) : pts;
-}
+// CCP uses the shared global period filter (day/week/month/year/custom) like
+// every other tab, so the one control at the top works consistently everywhere.
+function viewCcp(){ return ((ccpData&&ccpData.points)||[]).filter(p=>inRange(p.date)); }
 // CBS chart (quarterly) has its own period filter, independent of the global
 // day/week/month/year one above — those units don't fit a quarterly series.
 let cbsPcPeriod='all';
@@ -2014,7 +1996,18 @@ function svgIndexChart(months, series, opts={}){
   const step=Math.max(1,Math.ceil(months.length/6));
   const labelIdx=new Set(); for(let i=0;i<months.length;i+=step) labelIdx.add(i);
   labelIdx.add(months.length-1);
-  for(const i of [...labelIdx].sort((a,b)=>a-b)) s+=`<text x="${X(i)}" y="${H-8}" text-anchor="middle" font-size="9" fill="var(--muted)">${months[i]}</text>`;
+  // Edge labels anchor inward instead of centering on the point — a centered
+  // label at x=0 or x=W bleeds half its width past the SVG's own edge and
+  // gets silently clipped, which for the LAST label reads as "data stops
+  // earlier than it does" (the true last date is invisible, not just close).
+  // The page is RTL, which SVG's text-anchor respects (start/end flip sides) —
+  // force direction="ltr" on these labels so "start"/"end" mean the
+  // conventional left/right regardless of the surrounding page direction.
+  const sortedIdx=[...labelIdx].sort((a,b)=>a-b);
+  for(const i of sortedIdx){
+    const anchor = i===0 ? 'start' : i===months.length-1 ? 'end' : 'middle';
+    s+=`<text x="${X(i)}" y="${H-8}" text-anchor="${anchor}" direction="ltr" font-size="9" fill="var(--muted)">${months[i]}</text>`;
+  }
   for(const ser of series){ let seg=[];
     const flush=()=>{ if(seg.length>1) s+=`<polyline points="${seg.join(' ')}" fill="none" stroke="${ser.color}" stroke-width="2"/>`; seg=[]; };
     ser.values.forEach((v,i)=>{ if(v==null) flush(); else seg.push(`${X(i).toFixed(1)},${Y(v).toFixed(1)}`); });
@@ -2452,11 +2445,6 @@ async function init(){
   periodSel.addEventListener('change',applyPeriod);
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
-
-  // Credit-card-purchases chart: its own independent period filter
-  const ccpPeriodSel=document.getElementById('ccpPeriodSel');
-  ccpPeriodSel.value=ccpPeriod;
-  ccpPeriodSel.addEventListener('change',()=>{ ccpPeriod=ccpPeriodSel.value; renderCcp(); });
 
   // CBS private-consumption chart: its own independent period filter (quarterly presets)
   const cbsPcPeriodSel=document.getElementById('cbsPcPeriodSel');
