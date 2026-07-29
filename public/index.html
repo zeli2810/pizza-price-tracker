@@ -551,6 +551,16 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     </div>
     <h2>הוצאה לצריכה פרטית לנפש, למעט מוצרים בני-קיימא <span id="cbsPcMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
     <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">מדד רבעוני, משורשרים במחירי 2020, מנוכה עונתיות — הלשכה המרכזית לסטטיסטיקה. מתחילת הנתונים ועד היום.</p>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">תקופה:
+        <select id="cbsPcPeriodSel">
+          <option value="all">הכל</option>
+          <option value="y1">שנה אחרונה (4 רבעונים)</option>
+          <option value="y3">3 שנים אחרונות</option>
+          <option value="y5">5 שנים אחרונות</option>
+          <option value="y10">10 שנים אחרונות</option>
+        </select></label>
+    </div>
     <div id="cbsPcChart" class="chartbox"><div class="no-data">טוען…</div></div>
   </section>
   <section>
@@ -750,12 +760,15 @@ window.toggleWoltSelected=function(){
 };
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
 function viewCcp(){ return ((ccpData&&ccpData.points)||[]).filter(p=>inRange(p.date)); }
-// CBS points are labeled "YYYY-Qn" — convert to the quarter's first day (ISO) to compare against the date-based period bounds.
-function quarterToISO(label){
-  const m=/^(\d{4})-Q([1-4])$/.exec(label||''); if(!m) return label;
-  return `${m[1]}-${String((+m[2]-1)*3+1).padStart(2,'0')}-01`;
+// CBS chart (quarterly) has its own period filter, independent of the global
+// day/week/month/year one above — those units don't fit a quarterly series.
+let cbsPcPeriod='all';
+const CBS_PC_PERIOD_QUARTERS={y1:4,y3:12,y5:20,y10:40};
+function viewCbsPc(){
+  const pts=(cbsPcData&&cbsPcData.points)||[];
+  const n=CBS_PC_PERIOD_QUARTERS[cbsPcPeriod];
+  return n ? pts.slice(-n) : pts;
 }
-function viewCbsPc(){ return ((cbsPcData&&cbsPcData.points)||[]).filter(p=>inRange(quarterToISO(p.date))); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
@@ -1994,8 +2007,14 @@ function attachChartHover(containerId, months, series){
     tip.innerHTML=html;
     tip.style.display='block';
     const left=e.clientX-rect.left, top=e.clientY-rect.top;
-    tip.style.left=Math.min(left+12, rect.width-175)+'px';
-    tip.style.top=Math.max(top-46,0)+'px';
+    const gap=14, tw=tip.offsetWidth, th=tip.offsetHeight;
+    // Always to the right of the point; only pull back if that would overflow
+    // the container. Vertically centered on the point, clamped fully inside —
+    // never pushed above the container (that was hiding it for high values).
+    let tx=left+gap; if(tx+tw>rect.width) tx=Math.max(0, rect.width-tw);
+    let ty=Math.max(0, Math.min(top-th/2, rect.height-th));
+    tip.style.left=tx+'px';
+    tip.style.top=ty+'px';
   });
   svg.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
 }
@@ -2361,6 +2380,10 @@ async function init(){
   periodSel.addEventListener('change',applyPeriod);
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
+
+  // CBS private-consumption chart: its own independent period filter (quarterly presets)
+  const cbsPcPeriodSel=document.getElementById('cbsPcPeriodSel');
+  cbsPcPeriodSel.addEventListener('change',()=>{ cbsPcPeriod=cbsPcPeriodSel.value; renderCbsPc(); });
 
   const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,ccpData:ccpd,cbsPcData:cbspc}=await loadData();
   history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; ccpData=ccpd||null; cbsPcData=cbspc||null;
