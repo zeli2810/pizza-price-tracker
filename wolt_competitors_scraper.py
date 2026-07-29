@@ -200,6 +200,14 @@ def run_scrape(verbose=True):
             db.collection("wolt_competitors").document("latest").set(entry)
             if verbose:
                 print("  Synced Wolt competitors → Firestore ✓")
+            # Weekly history: keep just one snapshot per week — Thursday's —
+            # so the archive accumulates at a manageable, consistent cadence
+            # instead of a full copy every single day.
+            if now.weekday() == 3:  # Monday=0 .. Thursday=3
+                date = now.strftime("%Y-%m-%d")
+                db.collection("wolt_competitors_weekly").document(date).set(entry)
+                if verbose:
+                    print(f"  Synced Wolt competitors weekly ({date}, Thursday) → Firestore ✓")
     except Exception as e:
         if verbose:
             print(f"  Firestore sync skipped: {e}")

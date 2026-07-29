@@ -324,6 +324,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <div class="panel" id="panel-woltCompetitors">
   <div class="toolbar" style="margin-top:18px">
     <button class="action" onclick="exportWoltCompetitorsExcel()">⬇ ייצוא לאקסל</button>
+    <button class="action" onclick="exportWoltCompWeeklyExcel()">⬇ ייצוא היסטוריה שבועית</button>
   </div>
   <section>
     <h2>פעילות מתחרים בוולט <span id="woltCompMeta" style="font-size:.75rem;color:var(--muted);font-weight:400"></span></h2>
@@ -336,6 +337,13 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
       <table id="woltCompTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
     <div id="woltCompUncovered" style="font-size:.72rem;color:var(--muted);margin-top:10px"></div>
+  </section>
+  <section>
+    <h2>היסטוריה שבועית <span id="woltCompWeeklyMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">תמונת מצב אחת לשבוע — נשמרת רק הבדיקה של יום חמישי, כדי לעקוב אחר שינויים לאורך זמן בלי לצבור עותק מדי יום. העדכני למעלה.</p>
+    <div class="tbl-wrap">
+      <table id="woltCompWeeklyTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
+    </div>
   </section>
 </div>
 
@@ -542,6 +550,16 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     </div>
     <h2>רכישות בכרטיסי אשראי <span id="ccpMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
     <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">היקף רכישות יומי בכרטיסי אשראי במשק, ממקורות בנק ישראל — מיליוני ₪, מנוכה עונתיות ולוח שנה, ממוצע נע 7 ימים. מתחילת הנתונים ועד היום.</p>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">תקופה:
+        <select id="ccpPeriodSel">
+          <option value="all">הכל (מתחילת הנתונים)</option>
+          <option value="y1">שנה אחרונה</option>
+          <option value="y3">3 שנים אחרונות</option>
+          <option value="y5" selected>5 שנים אחרונות</option>
+          <option value="y10">10 שנים אחרונות</option>
+        </select></label>
+    </div>
     <div id="ccpChart" class="chartbox"><div class="no-data">טוען…</div></div>
   </section>
   <section>
@@ -661,6 +679,7 @@ let pressDays = [];        // Press monitoring daily docs, ascending by date
 let pressUserSources = []; // user-added press_sources docs
 let pressSourceFilter = '';// '' = all sources; else a source key
 let woltCompetitors = null; // {checked_at, cities:[{city,papa_johns,pizza_hut,status}]}
+let woltCompWeekly = []; // [{id(date), checked_at, areas:[...], uncovered_cities}, ...] — Thursday-only snapshots, ascending by date
 let ccpData = null; // {updated_at, unit, points:[{date,value}]} — BOI credit card purchases
 let cbsPcData = null; // {updated_at, unit, points:[{date,value}]} — CBS private consumption per capita ex-durables
 let pressPizzaOnly = false;
@@ -759,7 +778,17 @@ window.toggleWoltSelected=function(){
   renderWolt(); renderWoltDaily(); renderWoltHistory();
 };
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
-function viewCcp(){ return ((ccpData&&ccpData.points)||[]).filter(p=>inRange(p.date)); }
+// CCP chart (daily, 10+ years of data) has its own period filter, independent
+// of the global one — the full range compresses ~3800 daily points into one
+// view, which can visually read as "not reaching today"; default to a
+// narrower recent window so the line's current end is legible.
+let ccpPeriod='y5';
+const CCP_PERIOD_DAYS={y1:365,y3:365*3,y5:365*5,y10:365*10};
+function viewCcp(){
+  const pts=(ccpData&&ccpData.points)||[];
+  const n=CCP_PERIOD_DAYS[ccpPeriod];
+  return n ? pts.slice(-n) : pts;
+}
 // CBS chart (quarterly) has its own period filter, independent of the global
 // day/week/month/year one above — those units don't fit a quarterly series.
 let cbsPcPeriod='all';
@@ -900,6 +929,12 @@ async function loadFromFirestore(){
     const wc=await getDoc(doc(db,'wolt_competitors','latest'));
     if(wc.exists()) woltCompetitors=wc.data();
   }catch(e){}
+  // Wolt competitors — weekly history (Thursday-only snapshots)
+  let woltCompWeekly=[];
+  try{
+    const wcw=await getDocs(collection(db,'wolt_competitors_weekly'));
+    woltCompWeekly = wcw.docs.map(d=>({id:d.id, ...d.data()})).sort((a,b)=>String(a.id).localeCompare(String(b.id)));
+  }catch(e){}
   // BOI credit card purchases (daily, Total activity)
   let ccpData=null;
   try{
@@ -912,7 +947,7 @@ async function loadFromFirestore(){
     const cpc=await getDoc(doc(db,'cbs_private_consumption','latest'));
     if(cpc.exists()) cbsPcData=cpc.data();
   }catch(e){}
-  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, ccpData, cbsPcData };
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, woltCompWeekly, ccpData, cbsPcData };
 }
 
 async function loadFallback(){
@@ -955,7 +990,7 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData,cbsPcData} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
       if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData || !cbsPcData){
@@ -968,12 +1003,12 @@ async function loadData(){
         if(!ccpData) ccpData=fb.ccpData;
         if(!cbsPcData) cbsPcData=fb.cbsPcData;
       }
-      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData,cbsPcData};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, ccpData:fb.ccpData||null, cbsPcData:fb.cbsPcData||null };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, woltCompWeekly:[], ccpData:fb.ccpData||null, cbsPcData:fb.cbsPcData||null };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -2310,6 +2345,38 @@ window.exportWoltCompetitorsExcel=function(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'מתחרים בוולט');
   XLSX.writeFile(wb,'wolt_competitors.xlsx');
 };
+function renderWoltCompWeekly(){
+  const t=document.getElementById('woltCompWeeklyTable'); if(!t) return;
+  const weeks=woltCompWeekly||[];
+  if(!weeks.length){
+    t.querySelector('thead').innerHTML=''; t.querySelector('tbody').innerHTML='<tr><td class="no-data">אין עדיין היסטוריה — נשמרת תמונת מצב חדשה בכל יום חמישי.</td></tr>';
+    document.getElementById('woltCompWeeklyMeta').textContent=''; return;
+  }
+  document.getElementById('woltCompWeeklyMeta').textContent=`· ${weeks.length} תמונות מצב שבועיות`;
+  const mark=(v,status)=> v?'<span style="color:var(--good);font-weight:700">✓</span>'
+    : (status&&status!=='ok'?'<span style="color:var(--muted)" title="'+esc(status)+'">?</span>':'<span style="color:var(--muted)">—</span>');
+  t.querySelector('thead').innerHTML='<tr><th>תאריך (יום חמישי)</th><th>אזור משלוח בוולט</th><th>פאפא ג\'ונס</th><th>פיצה האט</th></tr>';
+  const rows=[];
+  for(const wk of [...weeks].reverse()){
+    const areas=[...(wk.areas||[])].sort((a,b)=>(a.label||'').localeCompare(b.label||'','he'));
+    for(const a of areas){
+      rows.push(`<tr><td style="white-space:nowrap">${esc(wk.id||'')}</td><td>${esc(a.label||a.slug||'')}</td>`
+        +`<td>${mark(a.papa_johns,a.status)}</td><td>${mark(a.pizza_hut,a.status)}</td></tr>`);
+    }
+  }
+  t.querySelector('tbody').innerHTML=rows.join('');
+}
+window.exportWoltCompWeeklyExcel=function(){
+  const weeks=woltCompWeekly||[];
+  if(!weeks.length){ alert('אין היסטוריה שבועית לייצוא'); return; }
+  const rows=[['תאריך','אזור משלוח בוולט','פאפא ג\'ונס','פיצה האט','סטטוס']];
+  for(const wk of [...weeks].reverse()){
+    const areas=[...(wk.areas||[])].sort((a,b)=>(a.label||'').localeCompare(b.label||'','he'));
+    for(const a of areas) rows.push([wk.id||'', a.label||a.slug||'', a.papa_johns?'כן':'לא', a.pizza_hut?'כן':'לא', a.status||'']);
+  }
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'היסטוריה שבועית');
+  XLSX.writeFile(wb,'wolt_competitors_weekly.xlsx');
+};
 function renderCcp(){
   const el=document.getElementById('ccpChart'); if(!el) return;
   const all=(ccpData&&ccpData.points)||[];
@@ -2368,7 +2435,7 @@ window.exportCbsPcExcel=function(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'צריכה פרטית לנפש');
   XLSX.writeFile(wb,'cbs_private_consumption.xlsx');
 };
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderCbsPc(); renderIdeas(); }
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderWoltCompWeekly(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderCbsPc(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -2386,12 +2453,17 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
+  // Credit-card-purchases chart: its own independent period filter
+  const ccpPeriodSel=document.getElementById('ccpPeriodSel');
+  ccpPeriodSel.value=ccpPeriod;
+  ccpPeriodSel.addEventListener('change',()=>{ ccpPeriod=ccpPeriodSel.value; renderCcp(); });
+
   // CBS private-consumption chart: its own independent period filter (quarterly presets)
   const cbsPcPeriodSel=document.getElementById('cbsPcPeriodSel');
   cbsPcPeriodSel.addEventListener('change',()=>{ cbsPcPeriod=cbsPcPeriodSel.value; renderCbsPc(); });
 
-  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,ccpData:ccpd,cbsPcData:cbspc}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; ccpData=ccpd||null; cbsPcData=cbspc||null;
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,woltCompWeekly:wcw,ccpData:ccpd,cbsPcData:cbspc}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; woltCompWeekly=wcw||[]; ccpData=ccpd||null; cbsPcData=cbspc||null;
   const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds

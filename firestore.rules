@@ -86,6 +86,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /wolt_competitors_weekly/{date} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /credit_card_purchases/{doc} {
       allow read: if true;
       allow write: if false;
