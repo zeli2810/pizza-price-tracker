@@ -534,16 +534,25 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
-<!-- ============ TAB: Credit card purchases (Bank of Israel) ============ -->
+<!-- ============ TAB: Credit card purchases + private consumption (BOI / CBS) ============ -->
 <div class="panel" id="panel-ccp">
-  <div class="toolbar" style="margin-top:18px">
-    <button class="action" onclick="exportCcpExcel()">⬇ ייצוא לאקסל</button>
-    <a class="action" href="https://edge.boi.gov.il/#/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: בנק ישראל · Edge</a>
-  </div>
   <section>
+    <div class="toolbar" style="margin-top:18px">
+      <button class="action" onclick="exportCcpExcel()">⬇ ייצוא לאקסל</button>
+      <a class="action" href="https://edge.boi.gov.il/#/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: בנק ישראל · Edge</a>
+    </div>
     <h2>רכישות בכרטיסי אשראי <span id="ccpMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
     <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">היקף רכישות יומי בכרטיסי אשראי במשק, ממקורות בנק ישראל — מיליוני ₪, מנוכה עונתיות ולוח שנה, ממוצע נע 7 ימים. מתחילת הנתונים ועד היום.</p>
     <div id="ccpChart" class="chartbox"><div class="no-data">טוען…</div></div>
+  </section>
+  <section>
+    <div class="toolbar">
+      <button class="action" onclick="exportCbsPcExcel()">⬇ ייצוא לאקסל</button>
+      <a class="action" href="https://www.cbs.gov.il/he/Statistics/Pages/מחוללים/מחולל-סדרות.aspx?subject=37" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: הלמ"ס</a>
+    </div>
+    <h2>הוצאה לצריכה פרטית לנפש, למעט מוצרים בני-קיימא <span id="cbsPcMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">מדד רבעוני, משורשרים במחירי 2020, מנוכה עונתיות — הלשכה המרכזית לסטטיסטיקה. מתחילת הנתונים ועד היום.</p>
+    <div id="cbsPcChart" class="chartbox"><div class="no-data">טוען…</div></div>
   </section>
 </div>
 
@@ -648,6 +657,7 @@ let pressUserSources = []; // user-added press_sources docs
 let pressSourceFilter = '';// '' = all sources; else a source key
 let woltCompetitors = null; // {checked_at, cities:[{city,papa_johns,pizza_hut,status}]}
 let ccpData = null; // {updated_at, unit, points:[{date,value}]} — BOI credit card purchases
+let cbsPcData = null; // {updated_at, unit, points:[{date,value}]} — CBS private consumption per capita ex-durables
 let pressPizzaOnly = false;
 let ideaTodayOnly = false;
 let usingFallback = false;
@@ -881,7 +891,13 @@ async function loadFromFirestore(){
     const cd=await getDoc(doc(db,'credit_card_purchases','latest'));
     if(cd.exists()) ccpData=cd.data();
   }catch(e){}
-  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, ccpData };
+  // CBS private consumption per capita, ex-durables (quarterly)
+  let cbsPcData=null;
+  try{
+    const cpc=await getDoc(doc(db,'cbs_private_consumption','latest'));
+    if(cpc.exists()) cbsPcData=cpc.data();
+  }catch(e){}
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, ccpData, cbsPcData };
 }
 
 async function loadFallback(){
@@ -907,6 +923,9 @@ async function loadFallback(){
   for(const u of ['data/credit_card_purchases.json','../data/credit_card_purchases.json','/data/credit_card_purchases.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ccpData=await r.json(); break; } }catch(e){}
   }
+  for(const u of ['data/cbs_private_consumption.json','../data/cbs_private_consumption.json','/data/cbs_private_consumption.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.cbsPcData=await r.json(); break; } }catch(e){}
+  }
   return out;
 }
 
@@ -921,10 +940,10 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData,cbsPcData} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData){
+      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData || !cbsPcData){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
         if(!ppGenAll||!ppGenAll.length) ppGenAll=fb.ppGenAll;
@@ -932,13 +951,14 @@ async function loadData(){
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
         if(!woltCompetitors) woltCompetitors=fb.woltCompetitors;
         if(!ccpData) ccpData=fb.ccpData;
+        if(!cbsPcData) cbsPcData=fb.cbsPcData;
       }
-      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData,cbsPcData};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, ccpData:fb.ccpData||null };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, ccpData:fb.ccpData||null, cbsPcData:fb.cbsPcData||null };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -2258,7 +2278,29 @@ window.exportCcpExcel=function(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'רכישות אשראי');
   XLSX.writeFile(wb,'credit_card_purchases.xlsx');
 };
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderIdeas(); }
+function renderCbsPc(){
+  const el=document.getElementById('cbsPcChart'); if(!el) return;
+  const points=(cbsPcData&&cbsPcData.points)||[];
+  if(!points.length){
+    el.innerHTML='<div class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</div>';
+    document.getElementById('cbsPcMeta').textContent=''; return;
+  }
+  const dates=points.map(p=>p.date);
+  const values=points.map(p=>p.value);
+  const last=values[values.length-1];
+  document.getElementById('cbsPcMeta').textContent=
+    `· ${points.length} תצפיות רבעוניות · ${dates[0]} עד ${dates[dates.length-1]} · אחרון: ${Number(last).toFixed(0)} ₪ · עודכן ${cbsPcData.updated_at||''}`;
+  el.innerHTML=svgIndexChart(dates, [{label:"הוצאה לצריכה פרטית לנפש (₪, ללא בני-קיימא)", color:'#d29922', values}], {height:300});
+}
+window.exportCbsPcExcel=function(){
+  const points=(cbsPcData&&cbsPcData.points)||[];
+  if(!points.length){ alert('אין נתונים לייצוא'); return; }
+  const rows=[['רבעון','הוצאה לצריכה פרטית לנפש (₪)']];
+  for(const p of points) rows.push([p.date, p.value]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'צריכה פרטית לנפש');
+  XLSX.writeFile(wb,'cbs_private_consumption.xlsx');
+};
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderCbsPc(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -2276,8 +2318,8 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,ccpData:ccpd}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; ccpData=ccpd||null;
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,ccpData:ccpd,cbsPcData:cbspc}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; ccpData=ccpd||null; cbsPcData=cbspc||null;
   const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds
