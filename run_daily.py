@@ -39,7 +39,8 @@ LOG = HERE / "run_daily.log"
 SCRAPERS = ["multi_scraper.py", "offer_scraper.py", "branch_scraper.py",
             "paisplus_scraper.py", "paisplus_general_scraper.py", "wolt_scraper.py",
             "wolt_competitors_scraper.py",
-            "tabit_scraper.py", "qsr_scraper.py", "press_scraper.py", "marketing_scraper.py"]
+            "tabit_scraper.py", "qsr_scraper.py", "press_scraper.py",
+            "credit_card_purchases_scraper.py", "marketing_scraper.py"]
 
 
 def log(msg):

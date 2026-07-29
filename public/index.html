@@ -182,6 +182,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   <button class="tab" data-tab="tabit">TABIT מדד</button>
   <button class="tab" data-tab="qsr">QSR Magazine</button>
   <button class="tab" data-tab="press">מעקב עיתונות</button>
+  <button class="tab" data-tab="ccp">רכישות אשראי</button>
   <button class="tab" data-tab="ideas" style="display:none">רעיונאות</button>
 </nav>
 
@@ -533,6 +534,19 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
 </div>
 
+<!-- ============ TAB: Credit card purchases (Bank of Israel) ============ -->
+<div class="panel" id="panel-ccp">
+  <div class="toolbar" style="margin-top:18px">
+    <button class="action" onclick="exportCcpExcel()">⬇ ייצוא לאקסל</button>
+    <a class="action" href="https://edge.boi.gov.il/#/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: בנק ישראל · Edge</a>
+  </div>
+  <section>
+    <h2>רכישות בכרטיסי אשראי <span id="ccpMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">היקף רכישות יומי בכרטיסי אשראי במשק, ממקורות בנק ישראל — מיליוני ₪, מנוכה עונתיות ולוח שנה, ממוצע נע 7 ימים. מתחילת הנתונים ועד היום.</p>
+    <div id="ccpChart" class="chartbox"><div class="no-data">טוען…</div></div>
+  </section>
+</div>
+
 <!-- ============ TAB: TABIT restaurant index ============ -->
 <div class="panel" id="panel-tabit">
   <div class="toolbar" style="margin-top:18px">
@@ -633,6 +647,7 @@ let pressDays = [];        // Press monitoring daily docs, ascending by date
 let pressUserSources = []; // user-added press_sources docs
 let pressSourceFilter = '';// '' = all sources; else a source key
 let woltCompetitors = null; // {checked_at, cities:[{city,papa_johns,pizza_hut,status}]}
+let ccpData = null; // {updated_at, unit, points:[{date,value}]} — BOI credit card purchases
 let pressPizzaOnly = false;
 let ideaTodayOnly = false;
 let usingFallback = false;
@@ -860,7 +875,13 @@ async function loadFromFirestore(){
     const wc=await getDoc(doc(db,'wolt_competitors','latest'));
     if(wc.exists()) woltCompetitors=wc.data();
   }catch(e){}
-  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors };
+  // BOI credit card purchases (daily, Total activity)
+  let ccpData=null;
+  try{
+    const cd=await getDoc(doc(db,'credit_card_purchases','latest'));
+    if(cd.exists()) ccpData=cd.data();
+  }catch(e){}
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, ccpData };
 }
 
 async function loadFallback(){
@@ -883,6 +904,9 @@ async function loadFallback(){
   for(const u of ['data/wolt_competitors.json','../data/wolt_competitors.json','/data/wolt_competitors.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.woltCompetitors=await r.json(); break; } }catch(e){}
   }
+  for(const u of ['data/credit_card_purchases.json','../data/credit_card_purchases.json','/data/credit_card_purchases.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.ccpData=await r.json(); break; } }catch(e){}
+  }
   return out;
 }
 
@@ -897,23 +921,24 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors){
+      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
         if(!ppGenAll||!ppGenAll.length) ppGenAll=fb.ppGenAll;
         if(!woltAll||!woltAll.length) woltAll=fb.woltAll;
         if(!branchAll||!branchAll.length) branchAll=fb.branchAll;
         if(!woltCompetitors) woltCompetitors=fb.woltCompetitors;
+        if(!ccpData) ccpData=fb.ccpData;
       }
-      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,ccpData};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, ccpData:fb.ccpData||null };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -2211,7 +2236,29 @@ window.exportWoltCompetitorsExcel=function(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'מתחרים בוולט');
   XLSX.writeFile(wb,'wolt_competitors.xlsx');
 };
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderIdeas(); }
+function renderCcp(){
+  const el=document.getElementById('ccpChart'); if(!el) return;
+  const points=(ccpData&&ccpData.points)||[];
+  if(!points.length){
+    el.innerHTML='<div class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</div>';
+    document.getElementById('ccpMeta').textContent=''; return;
+  }
+  const dates=points.map(p=>p.date);
+  const values=points.map(p=>p.value);
+  const last=values[values.length-1];
+  document.getElementById('ccpMeta').textContent=
+    `· ${points.length} תצפיות יומיות · ${dates[0]} עד ${dates[dates.length-1]} · אחרון: ${Number(last).toFixed(0)} מיליון ₪ · עודכן ${ccpData.updated_at||''}`;
+  el.innerHTML=svgIndexChart(dates, [{label:"רכישות אשראי (מיליון ₪, ממוצע נע 7 ימים)", color:'#2f81f7', values}], {height:300});
+}
+window.exportCcpExcel=function(){
+  const points=(ccpData&&ccpData.points)||[];
+  if(!points.length){ alert('אין נתונים לייצוא'); return; }
+  const rows=[['תאריך','רכישות אשראי (מיליון ₪)']];
+  for(const p of points) rows.push([p.date, p.value]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'רכישות אשראי');
+  XLSX.writeFile(wb,'credit_card_purchases.xlsx');
+};
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -2229,8 +2276,8 @@ async function init(){
   dateFrom.addEventListener('change',applyPeriod);
   dateTo.addEventListener('change',applyPeriod);
 
-  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null;
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,ccpData:ccpd}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; ccpData=ccpd||null;
   const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds
