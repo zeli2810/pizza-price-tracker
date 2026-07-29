@@ -28,6 +28,7 @@ cbs_private_consumption/latest ({updated_at, unit, points:[{date,value}]}).
 import json
 import sys
 import io
+import time
 from pathlib import Path
 from datetime import datetime
 
@@ -55,34 +56,46 @@ def _quarter_label(time_period):
     return f"{year}-{MONTH_TO_QUARTER.get(month, month)}"
 
 
+def _fetch_once():
+    """One attempt. CBS's API is flaky — the same request sometimes silently
+    truncates how far back it goes (seen ranging from ~70 to 125+ points for
+    an identical query), so callers should retry and keep the longest series."""
+    r = requests.get(DATA_URL, headers={"User-Agent": UA}, timeout=60)
+    r.raise_for_status()
+    payload = r.json()
+    series = payload["DataSet"]["Series"][0]
+    obs = series["obs"]
+    points = [{"date": _quarter_label(o["TimePeriod"]), "value": float(o["Value"])} for o in obs]
+    points.sort(key=lambda p: p["date"])
+    return points, series
+
+
 def run_scrape(verbose=True):
     if verbose:
         print("  CBS private consumption per capita (ex-durables) — fetching series...")
-    try:
-        r = requests.get(DATA_URL, headers={"User-Agent": UA}, timeout=60)
-        r.raise_for_status()
-        payload = r.json()
-    except Exception as e:
-        print(f"  ⚠ fetch error: {str(e)[:150]}")
-        return []
 
-    try:
-        series = payload["DataSet"]["Series"][0]
-        obs = series["obs"]
-    except (KeyError, IndexError, TypeError):
-        print("  ⚠ unexpected response shape — site structure may have changed.")
-        return []
+    best_points, best_series = [], None
+    for attempt in range(4):
+        try:
+            points, series = _fetch_once()
+        except Exception as e:
+            if verbose:
+                print(f"  ⚠ attempt {attempt+1} fetch error: {str(e)[:120]}")
+            points = []
+        if len(points) > len(best_points):
+            best_points, best_series = points, series
+        if verbose and points:
+            print(f"    attempt {attempt+1}: {len(points)} points from {points[0]['date']}")
+        time.sleep(1.5)
 
-    points = [{"date": _quarter_label(o["TimePeriod"]), "value": float(o["Value"])} for o in obs]
-    points.sort(key=lambda p: p["date"])
-
+    points, series = best_points, best_series
     if len(points) < 10:
         if verbose:
             print(f"  ⚠ only {len(points)} points found (< 10) — looks degraded; not overwriting existing data.")
         return []
 
     if verbose:
-        print(f"    {len(points)} quarterly points · {points[0]['date']} .. {points[-1]['date']}")
+        print(f"    kept longest: {len(points)} quarterly points · {points[0]['date']} .. {points[-1]['date']}")
 
     entry = {
         "updated_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),

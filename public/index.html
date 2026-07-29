@@ -179,10 +179,9 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   <button class="tab" data-tab="wolt">וולט</button>
   <button class="tab" data-tab="woltCompetitors">פעילות מתחרים בוולט</button>
   <button class="tab" data-tab="branches">כמות סניפים</button>
-  <button class="tab" data-tab="tabit">TABIT מדד</button>
   <button class="tab" data-tab="qsr">QSR Magazine</button>
   <button class="tab" data-tab="press">מעקב עיתונות</button>
-  <button class="tab" data-tab="ccp">רכישות אשראי</button>
+  <button class="tab" data-tab="ccp">אינדיקטורים כלכליים</button>
   <button class="tab" data-tab="ideas" style="display:none">רעיונאות</button>
 </nav>
 
@@ -554,15 +553,11 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">מדד רבעוני, משורשרים במחירי 2020, מנוכה עונתיות — הלשכה המרכזית לסטטיסטיקה. מתחילת הנתונים ועד היום.</p>
     <div id="cbsPcChart" class="chartbox"><div class="no-data">טוען…</div></div>
   </section>
-</div>
-
-<!-- ============ TAB: TABIT restaurant index ============ -->
-<div class="panel" id="panel-tabit">
-  <div class="toolbar" style="margin-top:18px">
-    <button class="action" onclick="exportTabitExcel()">⬇ ייצוא לאקסל</button>
-    <a class="action" href="https://madad-il.tabit.cloud/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: madad-il.tabit.cloud</a>
-  </div>
   <section>
+    <div class="toolbar">
+      <button class="action" onclick="exportTabitExcel()">⬇ ייצוא לאקסל</button>
+      <a class="action" href="https://madad-il.tabit.cloud/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: madad-il.tabit.cloud</a>
+    </div>
     <h2>מדד המסעדות של ישראל · TABIT <span id="tabitMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
     <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">מדד חודשי (בסיס 100) של ביצועי ענף המסעדות בישראל. גרף וטבלה לאורך זמן.</p>
     <div class="controls">
@@ -754,6 +749,13 @@ window.toggleWoltSelected=function(){
   renderWolt(); renderWoltDaily(); renderWoltHistory();
 };
 function viewBranch(){ return branchAll.filter(d=>inRange(d.date)); }
+function viewCcp(){ return ((ccpData&&ccpData.points)||[]).filter(p=>inRange(p.date)); }
+// CBS points are labeled "YYYY-Qn" — convert to the quarter's first day (ISO) to compare against the date-based period bounds.
+function quarterToISO(label){
+  const m=/^(\d{4})-Q([1-4])$/.exec(label||''); if(!m) return label;
+  return `${m[1]}-${String((+m[2]-1)*3+1).padStart(2,'0')}-01`;
+}
+function viewCbsPc(){ return ((cbsPcData&&cbsPcData.points)||[]).filter(p=>inRange(quarterToISO(p.date))); }
 
 const fmt = v => v!=null ? '₪'+Number(v).toFixed(1) : '—';
 
@@ -1970,6 +1972,34 @@ function svgIndexChart(months, series, opts={}){
 }
 function chartLegend(series){ return series.map(s=>`<span class="lg"><span class="sw" style="background:${s.color}"></span>${esc(s.label)}</span>`).join(''); }
 
+// Hover crosshair for svgIndexChart: shows the nearest point's date+values in a
+// floating tooltip. Re-attach after every render since innerHTML wipes listeners.
+function attachChartHover(containerId, months, series){
+  const el=document.getElementById(containerId); if(!el) return;
+  const svg=el.querySelector('svg'); if(!svg||!months.length) return;
+  const W=760, padL=40, padR=14;
+  let tip=document.createElement('div');
+  tip.className='chart-tip';
+  tip.style.cssText='position:absolute;pointer-events:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:6px 9px;font-size:.72rem;line-height:1.6;white-space:nowrap;display:none;z-index:5;box-shadow:0 2px 10px rgba(0,0,0,.25)';
+  el.style.position='relative'; el.appendChild(tip);
+  const numFmt=v=>Number(v).toLocaleString('he-IL',{maximumFractionDigits:1});
+  svg.addEventListener('mousemove', e=>{
+    const rect=svg.getBoundingClientRect();
+    const xVal=((e.clientX-rect.left)/rect.width)*W;
+    const frac=(xVal-padL)/(W-padL-padR);
+    const idx=Math.max(0,Math.min(months.length-1,Math.round(frac*(months.length-1))));
+    let html=`<b>${esc(months[idx])}</b>`, any=false;
+    for(const s of series){ const v=s.values[idx]; if(v!=null){ any=true; html+=`<br><span style="color:${s.color}">●</span> ${esc(s.label)}: <b>${numFmt(v)}</b>`; } }
+    if(!any){ tip.style.display='none'; return; }
+    tip.innerHTML=html;
+    tip.style.display='block';
+    const left=e.clientX-rect.left, top=e.clientY-rect.top;
+    tip.style.left=Math.min(left+12, rect.width-175)+'px';
+    tip.style.top=Math.max(top-46,0)+'px';
+  });
+  svg.addEventListener('mouseleave', ()=>{ tip.style.display='none'; });
+}
+
 function renderTabit(){
   const chartEl=document.getElementById('tabitChart'); if(!chartEl) return;
   if(!tabitData || !((tabitData.general||[]).length)){
@@ -2258,17 +2288,24 @@ window.exportWoltCompetitorsExcel=function(){
 };
 function renderCcp(){
   const el=document.getElementById('ccpChart'); if(!el) return;
-  const points=(ccpData&&ccpData.points)||[];
-  if(!points.length){
+  const all=(ccpData&&ccpData.points)||[];
+  if(!all.length){
     el.innerHTML='<div class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</div>';
     document.getElementById('ccpMeta').textContent=''; return;
+  }
+  const points=viewCcp();
+  if(!points.length){
+    el.innerHTML='<div class="no-data">אין תצפיות בתקופה שנבחרה.</div>';
+    document.getElementById('ccpMeta').textContent=`· 0 מתוך ${all.length} תצפיות בתקופה שנבחרה`; return;
   }
   const dates=points.map(p=>p.date);
   const values=points.map(p=>p.value);
   const last=values[values.length-1];
   document.getElementById('ccpMeta').textContent=
     `· ${points.length} תצפיות יומיות · ${dates[0]} עד ${dates[dates.length-1]} · אחרון: ${Number(last).toFixed(0)} מיליון ₪ · עודכן ${ccpData.updated_at||''}`;
-  el.innerHTML=svgIndexChart(dates, [{label:"רכישות אשראי (מיליון ₪, ממוצע נע 7 ימים)", color:'#2f81f7', values}], {height:300});
+  const series=[{label:"רכישות אשראי (מיליון ₪, ממוצע נע 7 ימים)", color:'#2f81f7', values}];
+  el.innerHTML=svgIndexChart(dates, series, {height:300});
+  attachChartHover('ccpChart', dates, series);
 }
 window.exportCcpExcel=function(){
   const points=(ccpData&&ccpData.points)||[];
@@ -2280,17 +2317,24 @@ window.exportCcpExcel=function(){
 };
 function renderCbsPc(){
   const el=document.getElementById('cbsPcChart'); if(!el) return;
-  const points=(cbsPcData&&cbsPcData.points)||[];
-  if(!points.length){
+  const all=(cbsPcData&&cbsPcData.points)||[];
+  if(!all.length){
     el.innerHTML='<div class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</div>';
     document.getElementById('cbsPcMeta').textContent=''; return;
+  }
+  const points=viewCbsPc();
+  if(!points.length){
+    el.innerHTML='<div class="no-data">אין תצפיות בתקופה שנבחרה (הנתון רבעוני — נסו טווח רחב יותר).</div>';
+    document.getElementById('cbsPcMeta').textContent=`· 0 מתוך ${all.length} תצפיות בתקופה שנבחרה`; return;
   }
   const dates=points.map(p=>p.date);
   const values=points.map(p=>p.value);
   const last=values[values.length-1];
   document.getElementById('cbsPcMeta').textContent=
     `· ${points.length} תצפיות רבעוניות · ${dates[0]} עד ${dates[dates.length-1]} · אחרון: ${Number(last).toFixed(0)} ₪ · עודכן ${cbsPcData.updated_at||''}`;
-  el.innerHTML=svgIndexChart(dates, [{label:"הוצאה לצריכה פרטית לנפש (₪, ללא בני-קיימא)", color:'#d29922', values}], {height:300});
+  const series=[{label:"הוצאה לצריכה פרטית לנפש (₪, ללא בני-קיימא)", color:'#d29922', values}];
+  el.innerHTML=svgIndexChart(dates, series, {height:300});
+  attachChartHover('cbsPcChart', dates, series);
 }
 window.exportCbsPcExcel=function(){
   const points=(cbsPcData&&cbsPcData.points)||[];
