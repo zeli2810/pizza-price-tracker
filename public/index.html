@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>מחירי פיצה – מעקב יומי</title>
+<title>מעקב נתונים יומי ברשת</title>
 <style>
 :root{
   --bg:#ffffff; --surface:#f6f8fa; --surface2:#eaeef2; --border:#d0d7de;
@@ -165,7 +165,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <body>
 
 <header>
-  <h1>🍕 מחירי פיצה – מעקב יומי</h1>
+  <h1>🍕 מעקב נתונים יומי ברשת</h1>
   <div class="last-update" id="lastUpdate">טוען…</div>
   <div class="banner" id="cfgBanner"></div>
 </header>
@@ -193,7 +193,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <option value="day">יום אחרון</option>
     <option value="week">שבוע אחרון</option>
     <option value="month">חודש אחרון</option>
-    <option value="year">שנה אחרונה</option>
+    <option value="year" selected>שנה אחרונה</option>
     <option value="custom">טווח תאריכים ידני</option>
   </select>
   <span id="customRange" style="display:none">
@@ -275,9 +275,9 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
 <div class="panel active" id="panel-paisplusGeneral">
   <div class="toolbar" style="margin-top:18px">
     <select id="ppGenSizeSel" onchange="setPpGenSize(this.value)">
-      <option value="family" selected>🍕 פיצה משפחתית</option>
+      <option value="family">🍕 פיצה משפחתית</option>
       <option value="personal">🍕 פיצה אישית</option>
-      <option value="all">הכל</option>
+      <option value="all" selected>הכל</option>
     </select>
     <button class="action" id="ppGenChainFilterBtn" onclick="togglePpGenChainFilter()" style="background:var(--accent)">📋 הכל</button>
     <button class="action" id="ppGenPickupBtn" onclick="togglePpGenPickupOnly()">🏬 איסוף בלבד</button>
@@ -289,7 +289,7 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
     <div class="tbl-wrap">
       <table id="ppGenTable"><thead></thead><tbody><tr><td class="no-data">טוען…</td></tr></tbody></table>
     </div>
-    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ברירת מחדל: פיצה משפחתית · רשתות נבחרות (דומינוס, פיצה האט, פאפא ג'ונס, עגבניה, פרגו). ״איסוף בלבד״ = ההצעה מוגבלת להזמנה בסניף בלבד (אין אתר/אפליקציה).</p>
+    <p style="font-size:.7rem;color:var(--muted);margin-top:8px">ברירת מחדל: כל הגדלים · רשתות נבחרות (דומינוס, פיצה האט, פאפא ג'ונס, עגבניה, פרגו). ״איסוף בלבד״ = ההצעה מוגבלת להזמנה בסניף בלבד (אין אתר/אפליקציה).</p>
   </section>
 </div>
 
@@ -709,7 +709,7 @@ function ppFilterOffers(offers){
 }
 
 // ---- Pais Plus GENERAL (homepage) filters — same logic, separate state -----
-let ppGenSizeFilter = 'family';
+let ppGenSizeFilter = 'all';
 let ppGenChainSelectedOnly = true;
 let ppGenPickupOnlyFilter = false;
 function ppGenFilterOffers(offers){
@@ -731,7 +731,7 @@ function offerScore(row){
 }
 
 // ---- global period filter (applies to all tabs) ----------------------------
-let period = { mode:'all', from:'', to:'' };
+let period = { mode:'year', from:'', to:'' }; // matches the #periodSel default-selected option below
 function rangeBounds(){
   const allDates=[...history.map(e=>e.date), ...ppAll.map(d=>d.date), ...ppGenAll.map(d=>d.date), ...woltAll.map(d=>d.date), ...branchAll.map(d=>d.date)].filter(Boolean).sort();
   const maxD = allDates.length ? allDates[allDates.length-1] : null;
