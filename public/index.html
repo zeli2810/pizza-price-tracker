@@ -573,6 +573,25 @@ footer{text-align:center;margin-top:34px;color:var(--muted);font-size:.72rem;lin
   </section>
   <section>
     <div class="toolbar">
+      <button class="action" onclick="exportHhDebtExcel()">⬇ ייצוא לאקסל</button>
+      <a class="action" href="https://edge.boi.gov.il/#/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: בנק ישראל · Edge</a>
+    </div>
+    <h2>חוב משקי הבית <span id="hhDebtMeta" style="font-size:.72rem;color:var(--muted);font-weight:400"></span></h2>
+    <p style="font-size:.72rem;color:var(--muted);margin:2px 0 10px">יתרת החוב הכוללת של משקי הבית (כולל מלכ"רים המשרתים משקי בית), כלפי כל המלווים — מיליארדי ₪, רבעוני — הלשכה לסטטיסטיקה של בנק ישראל.</p>
+    <div class="controls">
+      <label style="font-size:.8rem;color:var(--muted)">תקופה:
+        <select id="hhDebtPeriodSel">
+          <option value="all">הכל (מתחילת הנתונים)</option>
+          <option value="y1">שנה אחרונה</option>
+          <option value="y3">3 שנים אחרונות</option>
+          <option value="y5" selected>5 שנים אחרונות (מ-2021 בערך)</option>
+          <option value="y10">10 שנים אחרונות</option>
+        </select></label>
+    </div>
+    <div id="hhDebtChart" class="chartbox"><div class="no-data">טוען…</div></div>
+  </section>
+  <section>
+    <div class="toolbar">
       <button class="action" onclick="exportTabitExcel()">⬇ ייצוא לאקסל</button>
       <a class="action" href="https://madad-il.tabit.cloud/" target="_blank" rel="noopener" style="text-decoration:none">↗ מקור: madad-il.tabit.cloud</a>
     </div>
@@ -672,6 +691,7 @@ let woltCompetitors = null; // {checked_at, cities:[{city,papa_johns,pizza_hut,s
 let woltCompWeekly = []; // [{id(date), checked_at, areas:[...], uncovered_cities}, ...] — Thursday-only snapshots, ascending by date
 let ccpData = null; // {updated_at, unit, points:[{date,value}]} — BOI credit card purchases
 let cbsPcData = null; // {updated_at, unit, points:[{date,value}]} — CBS private consumption per capita ex-durables
+let hhDebtData = null; // {updated_at, unit, points:[{date,value}]} — BOI total household debt balance
 let pressPizzaOnly = false;
 let ideaTodayOnly = false;
 let usingFallback = false;
@@ -778,6 +798,14 @@ const CBS_PC_PERIOD_QUARTERS={y1:4,y3:12,y5:20,y10:40};
 function viewCbsPc(){
   const pts=(cbsPcData&&cbsPcData.points)||[];
   const n=CBS_PC_PERIOD_QUARTERS[cbsPcPeriod];
+  return n ? pts.slice(-n) : pts;
+}
+// Household debt chart (quarterly) — same independent-filter pattern as CBS above.
+let hhDebtPeriod='y5';
+const HH_DEBT_PERIOD_QUARTERS={y1:4,y3:12,y5:20,y10:40};
+function viewHhDebt(){
+  const pts=(hhDebtData&&hhDebtData.points)||[];
+  const n=HH_DEBT_PERIOD_QUARTERS[hhDebtPeriod];
   return n ? pts.slice(-n) : pts;
 }
 
@@ -929,7 +957,13 @@ async function loadFromFirestore(){
     const cpc=await getDoc(doc(db,'cbs_private_consumption','latest'));
     if(cpc.exists()) cbsPcData=cpc.data();
   }catch(e){}
-  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, woltCompWeekly, ccpData, cbsPcData };
+  // BOI total household debt balance (quarterly)
+  let hhDebtData=null;
+  try{
+    const hhd=await getDoc(doc(db,'household_debt','latest'));
+    if(hhd.exists()) hhDebtData=hhd.data();
+  }catch(e){}
+  return { hist, status, ppAll, ppGenAll, woltAll, branchAll, ideas, userSources, directives, offerLive, offerHist, tabit, qsrDays, qsrChain, pressDays, pressUserSources, woltCompetitors, woltCompWeekly, ccpData, cbsPcData, hhDebtData };
 }
 
 async function loadFallback(){
@@ -958,6 +992,9 @@ async function loadFallback(){
   for(const u of ['data/cbs_private_consumption.json','../data/cbs_private_consumption.json','/data/cbs_private_consumption.json']){
     try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.cbsPcData=await r.json(); break; } }catch(e){}
   }
+  for(const u of ['data/household_debt.json','../data/household_debt.json','/data/household_debt.json']){
+    try{ const r=await fetch(u+'?t='+Date.now()); if(r.ok){ out.hhDebtData=await r.json(); break; } }catch(e){}
+  }
   return out;
 }
 
@@ -972,10 +1009,10 @@ function groupAllOffers(arr){
 async function loadData(){
   if(isConfigured()){
     try{
-      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData} = await loadFromFirestore();
+      let {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData,hhDebtData} = await loadFromFirestore();
       usingFallback=false;
       // If Firestore lacks a piece yet, fill it from the local fallback.
-      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData || !cbsPcData){
+      if(!ppAll||!ppAll.length || !ppGenAll||!ppGenAll.length || !woltAll||!woltAll.length || !branchAll||!branchAll.length || !woltCompetitors || !ccpData || !cbsPcData || !hhDebtData){
         const fb=await loadFallback();
         if(!ppAll||!ppAll.length) ppAll=fb.ppAll;
         if(!ppGenAll||!ppGenAll.length) ppGenAll=fb.ppGenAll;
@@ -984,13 +1021,14 @@ async function loadData(){
         if(!woltCompetitors) woltCompetitors=fb.woltCompetitors;
         if(!ccpData) ccpData=fb.ccpData;
         if(!cbsPcData) cbsPcData=fb.cbsPcData;
+        if(!hhDebtData) hhDebtData=fb.hhDebtData;
       }
-      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData};
+      return {hist,status,ppAll,ppGenAll,woltAll,branchAll,ideas,userSources,directives,offerLive,offerHist,tabit,qsrDays,qsrChain,pressDays,pressUserSources,woltCompetitors,woltCompWeekly,ccpData,cbsPcData,hhDebtData};
     }catch(e){ console.error('Firestore load failed, falling back:', e); }
   }
   usingFallback=true;
   const fb=await loadFallback();
-  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, woltCompWeekly:[], ccpData:fb.ccpData||null, cbsPcData:fb.cbsPcData||null };
+  return { hist:fb.hist, status:fb.status, ppAll:fb.ppAll, ppGenAll:fb.ppGenAll, woltAll:fb.woltAll, branchAll:fb.branchAll, ideas:[], userSources:[], directives:'', offerLive:null, offerHist:[], tabit:null, qsrDays:[], qsrChain:[], pressDays:[], pressUserSources:[], woltCompetitors:fb.woltCompetitors||null, woltCompWeekly:[], ccpData:fb.ccpData||null, cbsPcData:fb.cbsPcData||null, hhDebtData:fb.hhDebtData||null };
 }
 
 // ---- status cards ------------------------------------------------------------
@@ -2420,7 +2458,36 @@ window.exportCbsPcExcel=function(){
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'צריכה פרטית לנפש');
   XLSX.writeFile(wb,'cbs_private_consumption.xlsx');
 };
-function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderWoltCompWeekly(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderCbsPc(); renderIdeas(); }
+function renderHhDebt(){
+  const el=document.getElementById('hhDebtChart'); if(!el) return;
+  const all=(hhDebtData&&hhDebtData.points)||[];
+  if(!all.length){
+    el.innerHTML='<div class="no-data">אין עדיין נתונים — ייסרק אוטומטית בסריקה היומית הבאה.</div>';
+    document.getElementById('hhDebtMeta').textContent=''; return;
+  }
+  const points=viewHhDebt();
+  if(!points.length){
+    el.innerHTML='<div class="no-data">אין תצפיות בתקופה שנבחרה (הנתון רבעוני — נסו טווח רחב יותר).</div>';
+    document.getElementById('hhDebtMeta').textContent=`· 0 מתוך ${all.length} תצפיות בתקופה שנבחרה`; return;
+  }
+  const dates=points.map(p=>p.date);
+  const values=points.map(p=>p.value);
+  const last=values[values.length-1];
+  document.getElementById('hhDebtMeta').textContent=
+    `· ${points.length} תצפיות רבעוניות · ${dates[0]} עד ${dates[dates.length-1]} · אחרון: ${Number(last).toFixed(1)} מיליארד ₪ · עודכן ${hhDebtData.updated_at||''}`;
+  const series=[{label:"חוב משקי הבית (מיליארדי ₪)", color:'#1a7f37', values}];
+  el.innerHTML=svgIndexChart(dates, series, {height:300});
+  attachChartHover('hhDebtChart', dates, series);
+}
+window.exportHhDebtExcel=function(){
+  const points=(hhDebtData&&hhDebtData.points)||[];
+  if(!points.length){ alert('אין נתונים לייצוא'); return; }
+  const rows=[['רבעון','חוב משקי הבית (מיליארדי ₪)']];
+  for(const p of points) rows.push([p.date, p.value]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(rows),'חוב משקי בית');
+  XLSX.writeFile(wb,'household_debt.xlsx');
+};
+function renderAll(){ renderStatus(); renderComparison(); renderRaw(); renderOffers(); renderPaisplus(); renderPaisplusGeneral(); renderWolt(); renderWoltDaily(); renderWoltHistory(); renderWoltCompetitors(); renderWoltCompWeekly(); renderBranches(); renderTabit(); renderQsr(); renderPress(); renderCcp(); renderCbsPc(); renderHhDebt(); renderIdeas(); }
 
 async function init(){
   initTabs();
@@ -2442,8 +2509,12 @@ async function init(){
   const cbsPcPeriodSel=document.getElementById('cbsPcPeriodSel');
   cbsPcPeriodSel.addEventListener('change',()=>{ cbsPcPeriod=cbsPcPeriodSel.value; renderCbsPc(); });
 
-  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,woltCompWeekly:wcw,ccpData:ccpd,cbsPcData:cbspc}=await loadData();
-  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; woltCompWeekly=wcw||[]; ccpData=ccpd||null; cbsPcData=cbspc||null;
+  // Household debt chart: its own independent period filter (quarterly presets)
+  const hhDebtPeriodSel=document.getElementById('hhDebtPeriodSel');
+  hhDebtPeriodSel.addEventListener('change',()=>{ hhDebtPeriod=hhDebtPeriodSel.value; renderHhDebt(); });
+
+  const {hist,status,ppAll:pp,ppGenAll:ppg,woltAll:wo,branchAll:br,ideas,userSources:us,directives,offerLive:ol,offerHist:oh,tabit,qsrDays:qd,qsrChain:qc,pressDays:prd,pressUserSources:prus,woltCompetitors:wc,woltCompWeekly:wcw,ccpData:ccpd,cbsPcData:cbspc,hhDebtData:hhd}=await loadData();
+  history=hist; statusDoc=status; ppAll=pp||[]; ppGenAll=ppg||[]; woltAll=wo||[]; branchAll=br||[]; marketingIdeas=ideas||[]; userSources=us||[]; offerLive=ol||null; offerHist=oh||[]; tabitData=tabit||null; qsrDays=qd||[]; qsrChain=qc||[]; pressDays=prd||[]; pressUserSources=prus||[]; woltCompetitors=wc||null; woltCompWeekly=wcw||[]; ccpData=ccpd||null; cbsPcData=cbspc||null; hhDebtData=hhd||null;
   const dirEl=document.getElementById('dir_text'); if(dirEl && directives) dirEl.value=directives;
 
   // prefill custom-range inputs with the data's date bounds

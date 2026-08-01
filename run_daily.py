@@ -41,6 +41,7 @@ SCRAPERS = ["multi_scraper.py", "offer_scraper.py", "branch_scraper.py",
             "wolt_competitors_scraper.py",
             "tabit_scraper.py", "qsr_scraper.py", "press_scraper.py",
             "credit_card_purchases_scraper.py", "cbs_private_consumption_scraper.py",
+            "household_debt_scraper.py",
             "marketing_scraper.py"]
 
 

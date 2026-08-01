@@ -98,6 +98,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if false;
     }
+    match /household_debt/{doc} {
+      allow read: if true;
+      allow write: if false;
+    }
     match /meta/{doc} {
       allow read: if true;
       allow write: if false;
