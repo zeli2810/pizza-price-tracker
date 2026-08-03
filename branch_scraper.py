@@ -4,7 +4,11 @@ Branch-count tracker: total branches + Tel Aviv branches per pizza chain.
 Live-scraped (exact, daily):
   - Domino's   : REST API — total open stores + stores in "תל אביב יפו".
   - Pizza Hut  : /branch/ archive — each card shows the branch address, so we
-                 count total and those whose address is in Tel Aviv.
+                 count total and those whose address is in Tel Aviv. Branches
+                 whose own page shows every weekday as "סגור" in the שעות
+                 פעילות (opening hours) widget are still listed in the
+                 archive but are actually closed, so they're excluded from
+                 the count (see _HOURS_CHECK_JS / check_closed_hours).
   - Papa John's: /branch/ archive (same pattern; a real Chrome browser passes
                  the Akamai check).
   - Pizza Prego: /branch/ archive (same WordPress pattern).
@@ -108,9 +112,46 @@ _WP_EXTRACT = r"""
 }
 """
 
+# Visits each branch's own detail page (in-page fetch, so it reuses the
+# already-established browser session/cookies) and flags any slug whose
+# "שעות פעילות" widget shows every day as "סגור" — still listed in the /branch/
+# archive, but actually closed. innerText on a live-appended DOMParser doc
+# collapses block-level divs with no separator, so we walk the individual
+# .open-hours child elements rather than splitting the container's text.
+_HOURS_CHECK_JS = r"""
+async ({ baseUrl, slugs }) => {
+  const closed = {};
+  let i = 0;
+  async function checkOne(slug) {
+    try {
+      const r = await fetch(`${baseUrl}/branch/${slug}/`, { credentials: 'same-origin' });
+      const html = await r.text();
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      const container = doc.querySelector('.hours-container');
+      if (!container) return;
+      const days = [...container.querySelectorAll('.open-hours')].map(e => e.textContent.trim());
+      if (days.length && days.every(t => /סגור/.test(t))) closed[slug] = true;
+    } catch (e) { /* fetch/parse failure — leave the branch counted */ }
+  }
+  async function worker() {
+    while (i < slugs.length) {
+      const idx = i++;
+      await checkOne(slugs[idx]);
+    }
+  }
+  await Promise.all(Array.from({ length: 6 }, worker));
+  return closed;
+}
+"""
 
-def scrape_wp_branches(base_url, pw):
-    """Total + Tel Aviv count from a WordPress /branch/ archive (address per card)."""
+
+def scrape_wp_branches(base_url, pw, check_closed_hours=False):
+    """Total + Tel Aviv count from a WordPress /branch/ archive (address per card).
+
+    check_closed_hours=True additionally visits each branch's detail page and
+    drops any branch whose opening-hours widget shows every day as "סגור"
+    (still listed in the archive, but actually closed).
+    """
     browser = pw.chromium.launch(
         channel="chrome", headless=True,
         args=["--no-sandbox", "--disable-blink-features=AutomationControlled"])
@@ -129,6 +170,13 @@ def scrape_wp_branches(base_url, pw):
             page.wait_for_timeout(600)
         if not cards:
             return None
+        if check_closed_hours:
+            try:
+                closed = page.evaluate(_HOURS_CHECK_JS, {"baseUrl": base_url, "slugs": list(cards.keys())}) or {}
+                for slug in closed:
+                    cards.pop(slug, None)
+            except Exception:
+                pass
         total = len(cards)
         tlv = sum(1 for t in cards.values() if _is_tlv(t))
         return {"total": total, "tlv": tlv}
@@ -215,7 +263,7 @@ def run_scrape(verbose=True):
                           ("papajohns", "https://www.papajohns.co.il"),
                           ("prego", "https://www.prego.co.il")]:
             try:
-                r = scrape_wp_branches(base, pw)
+                r = scrape_wp_branches(base, pw, check_closed_hours=(key == "pizzahut"))
                 if r and r["total"]:
                     scraped[key] = r
             except Exception as e:
