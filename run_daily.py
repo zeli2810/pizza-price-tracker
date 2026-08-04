@@ -66,7 +66,12 @@ def _ollama_up():
 
 def start_ollama():
     if _ollama_up():
-        log("  Ollama already running.")
+        # Note: this used to mean stop_ollama() below would be a no-op (proc
+        # stays None), so a leftover instance from any earlier failed stop —
+        # or anything else — silently sat resident (with its ~5GB loaded
+        # model) forever. stop_ollama() now force-kills by image name
+        # regardless of whether *we* started it, so this is just informational.
+        log("  Ollama already running (will still be force-stopped after this step).")
         return None
     try:
         proc = subprocess.Popen(["ollama", "serve"], stdout=subprocess.DEVNULL,
@@ -84,17 +89,33 @@ def start_ollama():
 
 
 def stop_ollama(proc):
-    if proc is None:
-        return
-    try:
-        proc.terminate()
-        proc.wait(timeout=10)
-    except Exception:
+    """Force Ollama (and its loaded-model subprocess) fully dormant after the
+    marketing step. Terminating just the Popen handle isn't enough: if Ollama
+    was already running when start_ollama() checked (so proc is None here),
+    or if terminate() alone doesn't reach the ollama_llama_server child it
+    spawns, the ~5GB model process is left resident indefinitely — which is
+    exactly what happened before this used taskkill-by-image-name as a
+    backstop and actually verified the port went down instead of assuming it.
+    """
+    if proc is not None:
         try:
-            proc.kill()
+            proc.terminate()
+            proc.wait(timeout=15)
         except Exception:
-            pass
-    log("  Ollama stopped.")
+            try:
+                proc.kill()
+                proc.wait(timeout=5)
+            except Exception:
+                pass
+    for image in ("ollama.exe", "ollama_llama_server.exe", "llama-server.exe"):
+        subprocess.run(["taskkill", "/IM", image, "/F"],
+                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    for _ in range(10):
+        if not _ollama_up():
+            log("  Ollama stopped.")
+            return
+        time.sleep(1)
+    log("  ⚠ Ollama still responding after stop — may need a manual kill (Task Manager, as admin).")
 
 
 def main():
