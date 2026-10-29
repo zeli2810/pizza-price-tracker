@@ -3310,5 +3310,41 @@
         "source": "scraped"
       }
     }
+  },
+  {
+    "date": "2026-10-29",
+    "timestamp": "2026-10-29 19:33:20",
+    "chains": {
+      "dominos": {
+        "total": 65,
+        "tlv": 7,
+        "source": "scraped"
+      },
+      "pizzahut": {
+        "total": 98,
+        "tlv": 4,
+        "source": "scraped"
+      },
+      "papajohns": {
+        "total": 45,
+        "tlv": 4,
+        "source": "scraped"
+      },
+      "shemesh": {
+        "total": 101,
+        "tlv": 5,
+        "source": "scraped"
+      },
+      "story": {
+        "total": 58,
+        "tlv": 0,
+        "source": "scraped"
+      },
+      "prego": {
+        "total": 23,
+        "tlv": 3,
+        "source": "scraped"
+      }
+    }
   }
 ]
