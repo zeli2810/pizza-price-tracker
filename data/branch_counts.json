@@ -4177,7 +4177,7 @@
   },
   {
     "date": "2026-11-24",
-    "timestamp": "2026-11-24 01:38:37",
+    "timestamp": "2026-11-24 23:31:05",
     "chains": {
       "dominos": {
         "total": 65,
@@ -4205,7 +4205,7 @@
         "source": "scraped"
       },
       "prego": {
-        "total": 23,
+        "total": 22,
         "tlv": 3,
         "source": "scraped"
       }
